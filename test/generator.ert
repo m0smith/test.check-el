@@ -1,0 +1,2 @@
+(ert-deftest test-tcel-call-gen ()
+  (should (equal 1 (tcel-call-gen (tcel-gen-pure 1) nil nil))))
