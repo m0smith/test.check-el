@@ -105,13 +105,94 @@ sequences (er, lists)."
   (assert (generator? generator) t "First arg to bind must be a generator") ;
   (tcel-gen-bind generator (tcel-bind-helper k)))
 
+(defclass tcel-random-class ()
+  ((seed :initarg :seed
+	:initform t)
+   (stte :initarg :state :initform nil)))
+
+(defun tcel-random-instance (&optional seed)
+  "SEED needs to be an integer"
+  (if seed
+      (tcel-random-class (format "random %d" seed) :seed seed :state ( cl-make-random-state seed))
+    (tcel-random-class "random nil" :state (cl-make-random-state))))
+  
 (defun tcel-random (&optional seed)
-  (if seed 
-      (random)
-    (random seed)))
+  "SEED must be an integer"
+  (tcel-random-instance seed))
+
+(defun tcel-random-float (&optional rnd)
+  "Return a number between 0.0 and 1.0 exclusive. RND is an instance of `tcel-random-class'"
+  (if rnd
+      (cl-random 1.0 (oref rnd stte))
+    (cl-random 1.0)))
+
 
 (defun tcel-make-size-range-seq  (max-size)
-  (cycle (cljs-el-range 0 max-size)))
+  (cljs-el-cycle (cljs-el-range 0 max-size)))
+
+(defun tcel-sample-seq (generator &optional max-size)
+  "Return a sequence of realized values from `generator`."
+  (let* ((max-size (or max-size 100))
+	 (r (tcel-random))
+	 (size-seq (tcel-make-size-range-seq max-size)))
+    (cljs-el-map (lambda (a) (qc-rt-root (tcel-call-gen generator r a))) size-seq)))
+
+(defun tcel-sample (generator &optional num-samples)
+  "Return a sequence of `num-samples` (default 10)
+  realized values from `generator`."
+  (assert (tcel-generator? generator) "First arg to sample must be a generator")
+  (let ((num-samples (or num-samples 10)))
+    (cljs-el-take num-samples (tcel-sample-seq generator))))
+
+;; Internal Helpers
+;; ---------------------------------------------------------------------------
+
+(defun tcel-halfs (n)
+  (cljs-el-take-while (lambda (a) (not(equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n)))
+
+(defun tcel-shrink-int  (n)
+  (cljs-el-map (lambda (a) (- n a)) (tcel-halfs n)))
+
+(defun tcel-int-rose-tree  (value)
+  (vconcat (vector value) (cljs-el-vec (cljs-el-map 'tcel-int-rose-tree (tcel-shrink-int value)))))
+
+(defun tcel-rand-range (rnd lower upper)
+  (assert (<= lower upper) t "Lower must be <= upper")
+  (let ((factor (tcel-random-float rnd)))
+    (floor (+ lower (- (* factor (+ 1 upper))
+		       (* factor lower))))))
+
+
+(defun tcel-sized (sized-gen)
+  "Create a generator that depends on the size parameter.
+  `SIZED-GEN` is a function that takes an integer and returns
+  a generator."
+  (tcel-make-gen
+    (lambda (rnd size)
+      (let ((sized-gen (funcall sized-gen size)))
+        (tcel-call-gen sized-gen rnd size)))))
+
+;; Combinators and helpers
+;; ---------------------------------------------------------------------------
+
+(defun tcel-resize   (n generator)
+  "Create a new generator with `size` always bound to `n`."
+  (assert (tcel-generator? generator) y "Second arg to resize must be a generator")
+  (let ((gen (oref generator gen)))
+    (tcel-make-gen
+     (lambda (rnd _size)
+       (funcall gen rnd n)))))
+
+(defun tcel-choose   (lower upper)
+  "Create a generator that returns numbers in the range
+  `min-range` to `max-range`, inclusive."
+  (tcel-make-gen
+    (lambda (rnd _size)
+      (let ((value (tcel-rand-range rnd lower upper)))
+        (qc-rt-filter
+          (lambda (a) (and (>= a lower) (<= a upper)))
+          (tcel-int-rose-tree value))))))
+
 
 
 
