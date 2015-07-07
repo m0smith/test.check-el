@@ -18,3 +18,12 @@
 (ert-deftest test-tcel-elements ()
     (should (equal '(:d :b :c :b :c :c :c :d :a :c)
 		   (tcel-sample (tcel-elements '(:a :b :c :d))))))
+
+
+(ert-deftest test-tcel-such-that ()
+
+      (should (equal '(:d :c  :c :c :c :d :a :c :d :c)
+		   (tcel-sample (tcel-such-that 
+				 (lambda (a) (not (equal a :b)))
+				 (tcel-elements '(:a :b :c :d))
+				 9)))))
