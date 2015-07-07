@@ -367,7 +367,7 @@ sequences (er, lists)."
 			       (make-list (qc-rt-root num-elements-rose)
 					  generator))
 			      (lambda (roses)
-				(tcel-generator-gen-pure (qc-rt-shrink 'list roses)))))))
+				(tcel-generator-gen-pure (qc-rt-shrink 'vector roses)))))))
 
 (defun tcel-generator-vector2 (generator num-elements)
   "See `tcel-generator-vector'"
@@ -385,7 +385,7 @@ sequences (er, lists)."
 					   generator))
 			       (lambda (roses)
 				 (tcel-generator-gen-bind
-				  (tcel-generator-gen-pure (qc-rt-shrink 'list roses))
+				  (tcel-generator-gen-pure (qc-rt-shrink 'vector roses))
 				  (lambda (rose)
 				    (tcel-generator-gen-pure (qc-rt-filter
 							      (lambda (v) (and (>= (length v) min-elements)
@@ -399,6 +399,17 @@ sequences (er, lists)."
     (if num-elements
 	(tcel-generator-vector2 generator num-elements)
       (tcel-generator-vector1 generator))))
+
+(defun tcel-generator-list (generator)
+  "Like `vector`, but generates lists."
+  (assert (tcel-generator-generator? generator) t "First arg to list must be a generator")
+  (tcel-generator-gen-bind (tcel-generator-sized (lambda (a) (tcel-generator-choose 0 a)))
+			   (lambda (num-elements-rose)
+			     (tcel-generator-gen-bind (tcel-generator-gen-seq->seq-gen
+						       (make-list (qc-rt-root num-elements-rose)
+								  generator))
+						      (lambda (roses)
+							(tcel-generator-gen-pure (qc-rt-shrink 'list roses)))))))
 
 
 
