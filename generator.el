@@ -346,6 +346,16 @@ sequences (er, lists)."
   (tcel-generator-fmap (lambda (a) (* -1 a)) (tcel-generator-nat)))
 
 
+(defun tcel-generator-s-pos-int (&rest _)
+  "Generate strictly positive integers bounded by the generator's `size`
+   parameter."
+  (tcel-generator-fmap '1+ (tcel-generator-nat)))
+
+(defun tcel-generator-s-neg-int (&rest _)
+  "Generate strictly negative integers bounded by the generator's `size`
+   parameter."
+  (tcel-generator-fmap '1- (tcel-generator-neg-int)))
+
 
 
 (provide 'generator)
