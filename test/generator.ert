@@ -126,3 +126,7 @@
 			(-5 4 6 1 2 2))
 
 		 (tcel-generator-sample (tcel-generator-list (tcel-generator-int))))))
+
+(ert-deftest test-tcel-generator-swap ()
+  (should (equal '(:a :d :c :b)
+		 (tcel-generator-swap '(:a :b :c :d) '(1 3)))))
