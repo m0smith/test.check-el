@@ -1,4 +1,4 @@
-;;; generator.el --- Port of test.check generators -*- lexical-binding: t; -*-
+f;;; generator.el --- Port of test.check generators -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015  Matthew O. Smith
 
@@ -130,31 +130,36 @@ sequences (er, lists)."
 (defun tcel-make-size-range-seq  (max-size)
   (cljs-el-cycle (cljs-el-range 0 max-size)))
 
+(defun tcel-sample-seq* (generator rnd a)
+  (qc-rt-root (tcel-call-gen generator rnd a)))
+
 (defun tcel-sample-seq (generator &optional max-size)
   "Return a sequence of realized values from `generator`."
   (let* ((max-size (or max-size 100))
 	 (r (tcel-random))
 	 (size-seq (tcel-make-size-range-seq max-size)))
-    (cljs-el-map (lambda (a) (qc-rt-root (tcel-call-gen generator r a))) size-seq)))
+    (cljs-el-map (lambda (a) (tcel-sample-seq* generator r a)) size-seq)))
 
 (defun tcel-sample (generator &optional num-samples)
   "Return a sequence of `num-samples` (default 10)
   realized values from `generator`."
   (assert (tcel-generator? generator) "First arg to sample must be a generator")
   (let ((num-samples (or num-samples 10)))
-    (cljs-el-take num-samples (tcel-sample-seq generator))))
+    (cljs-el-list (cljs-el-take num-samples (tcel-sample-seq generator)))))
 
 ;; Internal Helpers
 ;; ---------------------------------------------------------------------------
 
 (defun tcel-halfs (n)
-  (cljs-el-take-while (lambda (a) (not(equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n)))
+  "Return a non-lazy sequence"
+  (cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
 
 (defun tcel-shrink-int  (n)
-  (cljs-el-map (lambda (a) (- n a)) (tcel-halfs n)))
+  "Return a non-lazy list"
+  (mapcar (lambda (a) (- n a)) (tcel-halfs n)))
 
 (defun tcel-int-rose-tree  (value)
-  (vconcat (vector value) (cljs-el-vec (cljs-el-map 'tcel-int-rose-tree (tcel-shrink-int value)))))
+  (list value  (cljs-el-map 'tcel-int-rose-tree (tcel-shrink-int value))))
 
 (defun tcel-rand-range (rnd lower upper)
   (assert (<= lower upper) t "Lower must be <= upper")
@@ -190,8 +195,8 @@ sequences (er, lists)."
     (lambda (rnd _size)
       (let ((value (tcel-rand-range rnd lower upper)))
         (qc-rt-filter
-          (lambda (a) (and (>= a lower) (<= a upper)))
-          (tcel-int-rose-tree value))))))
+	 (lambda (a) (and (>= a lower) (<= a upper)))
+	 (tcel-int-rose-tree value))))))
 
 
 

@@ -7,7 +7,10 @@
     (should (equal '(42 13 29 23 26 38 48 42 47 30)
 		   (dotimes (_ 10 result)
 		     (setq result (cons (tcel-rand-range rnd 10 50) result)))))))
-    
+
+
+(ert-deftest test-tcel-choose ()
+  (should (equal "hamster" (tcel-sample (tcel-choose 10 20)))))
 	     
     
 	     
