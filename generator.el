@@ -413,6 +413,15 @@ sequences (er, lists)."
 
 
 
+(defun tcel-generator-swap (coll indexes)
+  (let* ((i1 (elt indexes 0))
+	 (i2 (elt indexes 1))
+	 (v1 (elt coll i1))
+	 (v2 (elt coll i2)))
+    (-replace-at i1 v2 
+		 (-replace-at i2 v1 coll))))
+
+
 
 (provide 'generator)
 ;;; generator.el ends here
