@@ -10,7 +10,11 @@
 
 
 (ert-deftest test-tcel-choose ()
-  (should (equal "hamster" (tcel-sample (tcel-choose 10 20)))))
+  (should (equal '(19 13 17 13 18 16 18 18 11 17)
+		 (tcel-sample (tcel-choose 10 20)))))
 	     
     
 	     
+(ert-deftest test-tcel-elements ()
+    (should (equal '(:d :b :c :b :c :c :c :d :a :c)
+		   (tcel-sample (tcel-elements '(:a :b :c :d))))))
