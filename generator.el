@@ -237,5 +237,16 @@ sequences (er, lists)."
     (tcel-gen-bind (tcel-choose 1 total)
 		   (lambda (a) (tcel-pick pairs (qc-rt-root a))))))
 
+(defun tcel-elements (coll)
+  "Create a generator that randomly chooses an element from `coll`.
+  Examples:
+      (tcel-elements [:foo :bar :baz])
+  "
+
+  (assert (cljs-el-seq coll) t "elements cannot be called with an empty collection")
+  (let ((v (lambda(a) (elt coll a))))
+    (tcel-gen-bind (tcel-choose 0 (1- (length coll)))
+		   (lambda (a) (tcel-gen-pure (qc-rt-fmap v a))))))
+
 (provide 'generator)
 ;;; generator.el ends here
