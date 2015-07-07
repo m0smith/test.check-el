@@ -357,6 +357,51 @@ sequences (er, lists)."
   (tcel-generator-fmap '1- (tcel-generator-neg-int)))
 
 
+(defun tcel-generator-vector1 (generator)
+  "See `tcel-generator-vector'"
+  (assert (tcel-generator-generator? generator) t "Arg to vector must be a generator")
+  (tcel-generator-gen-bind
+   (tcel-generator-sized (lambda (a) (tcel-generator-choose 0 a)))
+   (lambda (num-elements-rose)
+     (tcel-generator-gen-bind (tcel-generator-gen-seq->seq-gen
+			       (make-list (qc-rt-root num-elements-rose)
+					  generator))
+			      (lambda (roses)
+				(tcel-generator-gen-pure (qc-rt-shrink 'list roses)))))))
+
+(defun tcel-generator-vector2 (generator num-elements)
+  "See `tcel-generator-vector'"
+  (assert (tcel-generator-generator? generator) t "First arg to vector must be a generator")
+  (apply 'tcel-generator-tuple (make-list num-elements generator)))
+
+(defun tcel-generator-vector3 (generator min-elements max-elements)
+  "See `tcel-generator-vector'"
+   (assert (tcel-generator-generator? generator) t "First arg to vector must be a generator")
+   (tcel-generator-gen-bind
+    (tcel-generator-choose min-elements max-elements)
+    (lambda (num-elements-rose)
+      (tcel-generator-gen-bind (tcel-generator-gen-seq->seq-gen
+				(make-list (qc-rt-root num-elements-rose)
+					   generator))
+			       (lambda (roses)
+				 (tcel-generator-gen-bind
+				  (tcel-generator-gen-pure (qc-rt-shrink 'list roses))
+				  (lambda (rose)
+				    (tcel-generator-gen-pure (qc-rt-filter
+							      (lambda (v) (and (>= (length v) min-elements)
+									       (<= (length v) max-elements))) rose))))))))))
+
+(defun tcel-generator-vector (generator &optional num-elements max-elements)
+  "Create a generator whose elements are chosen from `gen`. The count of the
+  vector will be bounded by the `size` generator parameter."
+  (if (and num-elements max-elements)
+      (tcel-generator-vector3 generator num-elements max-elements)
+    (if num-elements
+	(tcel-generator-vector2 generator num-elements)
+      (tcel-generator-vector1 generator))))
+
+
+
 
 (provide 'generator)
 ;;; generator.el ends here
