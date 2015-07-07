@@ -27,3 +27,9 @@
 				 (lambda (a) (not (equal a :b)))
 				 (tcel-elements '(:a :b :c :d))
 				 9)))))
+
+(ert-deftest test-tcel-boolean ()
+
+      (should (equal '(nil t nil t nil nil nil nil t nil)
+		   (tcel-sample (tcel-boolean)))))
+
