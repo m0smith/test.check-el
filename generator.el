@@ -248,5 +248,35 @@ sequences (er, lists)."
     (tcel-gen-bind (tcel-choose 0 (1- (length coll)))
 		   (lambda (a) (tcel-gen-pure (qc-rt-fmap v a))))))
 
+
+(defun tcel-such-that-helper   (max-tries pred gen tries-left rand-seed size)
+  (if (zerop tries-left)
+    (throw ex-info (str "Couldn't satisfy tcel-such-that predicate after "
+                         max-tries " tries.")))
+  (let ((value (tcel-call-gen gen rand-seed size)))
+    (if (funcall pred (qc-rt-root value))
+	(qc-rt-filter pred value)
+      (tcel-such-that-helper max-tries pred gen (1- tries-left) rand-seed (1+ size))))))
+
+
+(defun tcel-such-that   (pred gen &optional max-tries)
+  "Create a generator that generates values from `gen` that satisfy predicate
+  `pred`. Care is needed to ensure there is a high chance `gen` will satisfy
+  `pred`. By default, `such-that` will try 10 times to generate a value that
+  satisfies the predicate. If no value passes this predicate after this number
+  of iterations, a runtime exception will be throw. You can pass an optional
+  third argument to change the number of times tried. Note also that each
+  time such-that retries, it will increase the size parameter.
+  Examples:
+      ;; generate non-empty vectors of integers
+      ;; (note, gen/not-empty does exactly this)
+      (tcel-such-that not-empty (gen/vector gen/int))
+  "
+  (let ((max-tries (or max-tries 10)))
+    (assert (tcel-generator? gen) t "Second arg to such-that must be a generator")
+    (tcel-make-gen
+     (lambda (rand-seed size)
+       (tcel-such-that-helper max-tries pred gen max-tries rand-seed size)))))
+
 (provide 'generator)
 ;;; generator.el ends here
