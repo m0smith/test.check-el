@@ -269,14 +269,48 @@ sequences (er, lists)."
   time such-that retries, it will increase the size parameter.
   Examples:
       ;; generate non-empty vectors of integers
-      ;; (note, gen/not-empty does exactly this)
-      (tcel-such-that not-empty (gen/vector gen/int))
+      ;; (note, tcel-not-empty does exactly this)
+      (tcel-such-that tcel-not-empty (tcel-vector tcel-int))
   "
   (let ((max-tries (or max-tries 10)))
     (assert (tcel-generator? gen) t "Second arg to such-that must be a generator")
     (tcel-make-gen
      (lambda (rand-seed size)
        (tcel-such-that-helper max-tries pred gen max-tries rand-seed size)))))
+
+
+(defun tcel-not-empty (gen)
+  "Modifies a generator so that it doesn't generate empty collections.
+  Examples:
+      ;; generate a vector of booleans, but never the empty vector
+      (tcel-not-empty (tcel-vector tcel-boolean))
+  "
+  (assert (tcel-generator? gen) "Arg to not-empty must be a generator")
+  (tcel-such-that (lambda(coll) (< 0 (length coll))) gen))
+
+(defun tcel-no-shrink (gen)
+  "Create a new generator that is just like `gen`, except does not shrink
+  at all. This can be useful when shrinking is taking a long time or is not
+  applicable to the domain."
+  (assert (generator? gen) "Arg to no-shrink must be a generator")
+  (tcel-gen-bind gen
+		 (lambda (coll)
+		   (destructuring-bind (root _children) coll
+		     (tcel-gen-pure
+		      (list root '()))))))
+
+(defun shrink-2 (gen)
+  "Create a new generator like `gen`, but will consider nodes for shrinking
+  even if their parent passes the test (up to one additional level)."
+
+  (assert (tcel-generator? gen) "Arg to shrink-2 must be a generator")
+  (tcel-gen-bind gen (lambda (a) (tcel-gen-pure (qc-rt-collapse a)))))
+
+(defun tcel-boolean (&rest args)
+  (tcel-elements [t nil]))
+  
+  
+
 
 (provide 'generator)
 ;;; generator.el ends here
