@@ -60,12 +60,12 @@
 	      (result (oref result-gen gen)))
 	 (funcall result rnd size))))))
 
-(defun gen-seq->seq-gen (gens)
+(defun tcel-generator-gen-seq->seq-gen (gens)
   "Takes a sequence of generators and returns a generator of
 sequences (er, lists)."
   (tcel-generator-make-gen
    (lambda (rnd size)
-     (mapcar (lambda (a) (tcel-generator-call-gen a rnd size) gens)))))
+     (mapcar (lambda (a) (tcel-generator-call-gen a rnd size)) gens))))
 
 
 ;; Exported generator functions
@@ -315,13 +315,13 @@ sequences (er, lists)."
   from the generators in the same position. The individual elements shrink
   according to their generator, but the value will never shrink in count.
   Examples:
-      (setq t (tcel-generator-tuple tcel-generator-int tcel-generator-boolean))
+      (setq t (tcel-generator-tuple (tcel-generator-int) (tcel-generator-boolean)))
       (tcel-generator-sample t)
       ;; => ([1 true] [2 true] [2 false] [1 false] [0 true] [-2 false] [-6 false]
       ;; =>  [3 true] [-4 false] [9 true]))
   "
 
-  (assert (every tcel-generator-generator? generators) t
+  (assert (every 'tcel-generator-generator? generators) t
           "Args to tuple must be generators")
   (tcel-generator-gen-bind (tcel-generator-gen-seq->seq-gen generators)
 			   (lambda (roses)
@@ -332,6 +332,11 @@ sequences (er, lists)."
   `size` parameter.
   Really returns a long"
   (tcel-generator-sized (lambda (size) (tcel-generator-choose (- size) size))))
+
+(defun tcel-generator-nat (&rest _)
+  "Generates natural numbers, starting at zero. Shrinks to zero."
+  (tcel-generator-fmap (lambda (a) (abs a)) (tcel-generator-int)))
+
 
 
 
