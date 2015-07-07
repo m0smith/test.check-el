@@ -337,6 +337,14 @@ sequences (er, lists)."
   "Generates natural numbers, starting at zero. Shrinks to zero."
   (tcel-generator-fmap (lambda (a) (abs a)) (tcel-generator-int)))
 
+(defun tcel-generator-pos-int (&rest _)
+  "Generate positive integers bounded by the generator's `size` parameter."
+  (tcel-generator-nat))
+
+(defun tcel-generator-neg-int (&rest _)
+  "Generate negative integers bounded by the generator's `size` parameter."
+  (tcel-generator-fmap (lambda (a) (* -1 a)) (tcel-generator-nat)))
+
 
 
 
