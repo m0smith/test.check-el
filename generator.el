@@ -26,34 +26,34 @@
 
 
 
-(defclass tcel-generator ()
+(defclass tcel-generator-generator ()
   ((gen :initarg :gen)))
 
-(defun tcel-generator? (x)
+(defun tcel-generator-generator? (x)
   "Test is `x` is a generator. Generators should be treated as opaque values."
-  (tcel-generator-p x))
+  (tcel-generator-generator-p x))
 
-(defun tcel-make-gen  (generator-fn)
-  (tcel-generator "make-gen" :gen generator-fn))
+(defun tcel-generator-make-gen  (generator-fn)
+  (tcel-generator-generator "make-gen" :gen generator-fn))
 
-(defun tcel-call-gen (g rnd size)
+(defun tcel-generator-call-gen (g rnd size)
   (let ((generator-fn (oref g gen)))
     (funcall generator-fn rnd size)))
 
-(defun tcel-gen-pure  (value)
-  (tcel-make-gen
-    (lambda (rnd size) value)))
+(defun tcel-generator-gen-pure  (value)
+  (tcel-generator-make-gen
+   (lambda (rnd size) value)))
 
-(defun tcel-gen-fmap (k g)
+(defun tcel-generator-gen-fmap (k g)
   (let ((h (oref g gen))) 
-    (tcel-make-gen
+    (tcel-generator-make-gen
      (lambda (rnd size)
        (funcall k (funcall h rnd size))))))
 
 
-(defun tcel-gen-bind   (g k)
+(defun tcel-generator-gen-bind   (g k)
   (let ((h (oref g gen))) 
-    (tcel-make-gen
+    (tcel-generator-make-gen
      (lambda (rnd size)
        (let* ((inner (funcall h rnd size))
 	      (result-gen (funcall k inner))
@@ -63,33 +63,33 @@
 (defun gen-seq->seq-gen (gens)
   "Takes a sequence of generators and returns a generator of
 sequences (er, lists)."
-  (tcel-make-gen
+  (tcel-generator-make-gen
    (lambda (rnd size)
-     (mapcar (lambda (a) (tcel-call-gen a rnd size) gens)))))
+     (mapcar (lambda (a) (tcel-generator-call-gen a rnd size) gens)))))
 
 
 ;; Exported generator functions
 ;; ---------------------------------------------------------------------------
 
-(defun tcel-fmap  (f gen)
-  (assert (tcel-generator? gen) t "Second arg to fmap must be a generator")
-  (tcel-gen-fmap (lambda (a) (qc-rt-fmap f a)) gen))
+(defun tcel-generator-fmap  (f gen)
+  (assert (tcel-generator-generator? gen) t "Second arg to fmap must be a generator")
+  (tcel-generator-gen-fmap (lambda (a) (qc-rt-fmap f a)) gen))
 
-(defun tcel-return (value)
+(defun tcel-generator-return (value)
   "Create a generator that always returns `value`,
   and never shrinks. You can think of this as
   the `constantly` of generators."
-  (tcel-gen-pure (qc-rt-pure value)))
+  (tcel-generator-gen-pure (qc-rt-pure value)))
 
-(defun tcel-bind-helper  (k)
+(defun tcel-generator-bind-helper  (k)
   (lambda (rose)
-    (tcel-gen-fmap 'qc-rt-join
-		   (tcel-make-gen
-		    (lambda (rnd size)
-		      (qc-rt-fmap (lambda (a) (tcel-call-gen a rnd size))
-				  (qc-rt-fmap k rose)))))))
+    (tcel-generator-gen-fmap 'qc-rt-join
+			     (tcel-generator-make-gen
+			      (lambda (rnd size)
+				(qc-rt-fmap (lambda (a) (tcel-generator-call-gen a rnd size))
+					    (qc-rt-fmap k rose)))))))
 
-(defun tcel-bind (generator k)
+(defun tcel-generator-bind (generator k)
   "Create a new generator that passes the result of `gen` into function
   `k`. `k` should return a new generator. This allows you to create new
   generators that depend on the value of other generators. For example,
@@ -102,104 +102,104 @@ sequences (er, lists)."
                 gen/elements)
   "
 
-  (assert (tcel-generator? generator) t "First arg to bind must be a generator") ;
-  (tcel-gen-bind generator (tcel-bind-helper k)))
+  (assert (tcel-generator-generator? generator) t "First arg to bind must be a generator") ;
+  (tcel-generator-gen-bind generator (tcel-generator-bind-helper k)))
 
-(defclass tcel-random-class ()
+(defclass tcel-generator-random-class ()
   ((seed :initarg :seed
-	:initform t)
+	 :initform t)
    (stte :initarg :state :initform nil)))
 
-(defun tcel-random-instance (&optional seed)
+(defun tcel-generator-random-instance (&optional seed)
   "SEED needs to be an integer"
   (if seed
-      (tcel-random-class (format "random %d" seed) :seed seed :state ( cl-make-random-state seed))
-    (tcel-random-class "random nil" :state (cl-make-random-state))))
-  
-(defun tcel-random (&optional seed)
-  "SEED must be an integer"
-  (tcel-random-instance seed))
+      (tcel-generator-random-class (format "random %d" seed) :seed seed :state ( cl-make-random-state seed))
+    (tcel-generator-random-class "random nil" :state (cl-make-random-state))))
 
-(defun tcel-random-float (&optional rnd)
-  "Return a number between 0.0 and 1.0 exclusive. RND is an instance of `tcel-random-class'"
+(defun tcel-generator-random (&optional seed)
+  "SEED must be an integer"
+  (tcel-generator-random-instance seed))
+
+(defun tcel-generator-random-float (&optional rnd)
+  "Return a number between 0.0 and 1.0 exclusive. RND is an instance of `tcel-generator-random-class'"
   (if rnd
       (cl-random 1.0 (oref rnd stte))
     (cl-random 1.0)))
 
 
-(defun tcel-make-size-range-seq  (max-size)
+(defun tcel-generator-make-size-range-seq  (max-size)
   (cljs-el-cycle (cljs-el-range 0 max-size)))
 
-(defun tcel-sample-seq* (generator rnd a)
-  (qc-rt-root (tcel-call-gen generator rnd a)))
+(defun tcel-generator-sample-seq* (generator rnd a)
+  (qc-rt-root (tcel-generator-call-gen generator rnd a)))
 
-(defun tcel-sample-seq (generator &optional max-size)
+(defun tcel-generator-sample-seq (generator &optional max-size)
   "Return a sequence of realized values from `generator`."
   (let* ((max-size (or max-size 100))
-	 (r (tcel-random))
-	 (size-seq (tcel-make-size-range-seq max-size)))
-    (cljs-el-map (lambda (a) (tcel-sample-seq* generator r a)) size-seq)))
+	 (r (tcel-generator-random))
+	 (size-seq (tcel-generator-make-size-range-seq max-size)))
+    (cljs-el-map (lambda (a) (tcel-generator-sample-seq* generator r a)) size-seq)))
 
-(defun tcel-sample (generator &optional num-samples)
+(defun tcel-generator-sample (generator &optional num-samples)
   "Return a sequence of `num-samples` (default 10)
   realized values from `generator`."
-  (assert (tcel-generator? generator) "First arg to sample must be a generator")
+  (assert (tcel-generator-generator? generator) "First arg to sample must be a generator")
   (let ((num-samples (or num-samples 10)))
-    (cljs-el-list (cljs-el-take num-samples (tcel-sample-seq generator)))))
+    (cljs-el-list (cljs-el-take num-samples (tcel-generator-sample-seq generator)))))
 
 ;; Internal Helpers
 ;; ---------------------------------------------------------------------------
 
-(defun tcel-halfs (n)
+(defun tcel-generator-halfs (n)
   "Return a non-lazy sequence"
   (cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
 
-(defun tcel-shrink-int  (n)
+(defun tcel-generator-shrink-int  (n)
   "Return a non-lazy list"
-  (mapcar (lambda (a) (- n a)) (tcel-halfs n)))
+  (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n)))
 
-(defun tcel-int-rose-tree  (value)
-  (list value  (cljs-el-map 'tcel-int-rose-tree (tcel-shrink-int value))))
+(defun tcel-generator-int-rose-tree  (value)
+  (list value  (cljs-el-map 'tcel-generator-int-rose-tree (tcel-generator-shrink-int value))))
 
-(defun tcel-rand-range (rnd lower upper)
+(defun tcel-generator-rand-range (rnd lower upper)
   (assert (<= lower upper) t "Lower must be <= upper")
-  (let ((factor (tcel-random-float rnd)))
+  (let ((factor (tcel-generator-random-float rnd)))
     (floor (+ lower (- (* factor (+ 1 upper))
 		       (* factor lower))))))
 
 
-(defun tcel-sized (sized-gen)
+(defun tcel-generator-sized (sized-gen)
   "Create a generator that depends on the size parameter.
   `SIZED-GEN` is a function that takes an integer and returns
   a generator."
-  (tcel-make-gen
-    (lambda (rnd size)
-      (let ((sized-gen (funcall sized-gen size)))
-        (tcel-call-gen sized-gen rnd size)))))
+  (tcel-generator-make-gen
+   (lambda (rnd size)
+     (let ((sized-gen (funcall sized-gen size)))
+       (tcel-generator-call-gen sized-gen rnd size)))))
 
 ;; Combinators and helpers
 ;; ---------------------------------------------------------------------------
 
-(defun tcel-resize   (n generator)
+(defun tcel-generator-resize   (n generator)
   "Create a new generator with `size` always bound to `n`."
-  (assert (tcel-generator? generator) y "Second arg to resize must be a generator")
+  (assert (tcel-generator-generator? generator) y "Second arg to resize must be a generator")
   (let ((gen (oref generator gen)))
-    (tcel-make-gen
+    (tcel-generator-make-gen
      (lambda (rnd _size)
        (funcall gen rnd n)))))
 
-(defun tcel-choose   (lower upper)
+(defun tcel-generator-choose   (lower upper)
   "Create a generator that returns numbers in the range
   `min-range` to `max-range`, inclusive."
-  (tcel-make-gen
-    (lambda (rnd _size)
-      (let ((value (tcel-rand-range rnd lower upper)))
-        (qc-rt-filter
-	 (lambda (a) (and (>= a lower) (<= a upper)))
-	 (tcel-int-rose-tree value))))))
+  (tcel-generator-make-gen
+   (lambda (rnd _size)
+     (let ((value (tcel-generator-rand-range rnd lower upper)))
+       (qc-rt-filter
+	(lambda (a) (and (>= a lower) (<= a upper)))
+	(tcel-generator-int-rose-tree value))))))
 
 
-(defun tcel-one-of  (generators)
+(defun tcel-generator-one-of  (generators)
   "Create a generator that randomly chooses a value from the list of
   provided generators. Shrinks toward choosing an earlier generator,
   as well as shrinking the value generated by the chosen generator.
@@ -207,20 +207,20 @@ sequences (er, lists)."
       (one-of (list gen/int gen/boolean (gen/vector gen/int)))
   "
 
-  (assert (every 'tcel-generator? generators) t "Arg to one-of must be a collection of generators")
-  (tcel-bind (tcel-choose 0 (1- (length generators)))
-	     (lambda (a) (nth a generators))))
+  (assert (every 'tcel-generator-generator? generators) t "Arg to one-of must be a collection of generators")
+  (tcel-generator-bind (tcel-generator-choose 0 (1- (length generators)))
+		       (lambda (a) (nth a generators))))
 
 
-(defun tcel-pick (coll n)
+(defun tcel-generator-pick (coll n)
   (let ((h (car coll))
 	(tail (cdr coll)))
     (destructuring-bind (chance gen) h
       (if (<= n chance)
 	  gen
-	(tcel-pick tail (- n chance))))))
+	(tcel-generator-pick tail (- n chance))))))
 
-(defun tcel-frequency (pairs)
+(defun tcel-generator-frequency (pairs)
   "Create a generator that chooses a generator from `pairs` based on the
   provided likelihoods. The likelihood of a given generator being chosen is
   its likelihood divided by the sum of all likelihoods
@@ -229,37 +229,37 @@ sequences (er, lists)."
   "
 
   (assert (every (lambda (a) (destructuring-bind (x g) a 
-			       (and (numberp x) (tcel-generator? g))))
+			       (and (numberp x) (tcel-generator-generator? g))))
 		 pairs)
 	  t
 	  "Arg to frequency must be a list of (num generator) pairs")
   (let ((total (apply '+ (mapcar 'first pairs))))
-    (tcel-gen-bind (tcel-choose 1 total)
-		   (lambda (a) (tcel-pick pairs (qc-rt-root a))))))
+    (tcel-generator-gen-bind (tcel-generator-choose 1 total)
+			     (lambda (a) (tcel-generator-pick pairs (qc-rt-root a))))))
 
-(defun tcel-elements (coll)
+(defun tcel-generator-elements (coll)
   "Create a generator that randomly chooses an element from `coll`.
   Examples:
-      (tcel-elements [:foo :bar :baz])
+      (tcel-generator-elements [:foo :bar :baz])
   "
 
   (assert (cljs-el-seq coll) t "elements cannot be called with an empty collection")
   (let ((v (lambda(a) (elt coll a))))
-    (tcel-gen-bind (tcel-choose 0 (1- (length coll)))
-		   (lambda (a) (tcel-gen-pure (qc-rt-fmap v a))))))
+    (tcel-generator-gen-bind (tcel-generator-choose 0 (1- (length coll)))
+			     (lambda (a) (tcel-generator-gen-pure (qc-rt-fmap v a))))))
 
 
-(defun tcel-such-that-helper   (max-tries pred gen tries-left rand-seed size)
+(defun tcel-generator-such-that-helper   (max-tries pred gen tries-left rand-seed size)
   (if (zerop tries-left)
-    (throw ex-info (str "Couldn't satisfy tcel-such-that predicate after "
-                         max-tries " tries.")))
-  (let ((value (tcel-call-gen gen rand-seed size)))
+      (throw ex-info (str "Couldn't satisfy tcel-generator-such-that predicate after "
+			  max-tries " tries.")))
+  (let ((value (tcel-generator-call-gen gen rand-seed size)))
     (if (funcall pred (qc-rt-root value))
 	(qc-rt-filter pred value)
-      (tcel-such-that-helper max-tries pred gen (1- tries-left) rand-seed (1+ size))))))
+      (tcel-generator-such-that-helper max-tries pred gen (1- tries-left) rand-seed (1+ size)))))
 
 
-(defun tcel-such-that   (pred gen &optional max-tries)
+(defun tcel-generator-such-that   (pred gen &optional max-tries)
   "Create a generator that generates values from `gen` that satisfy predicate
   `pred`. Care is needed to ensure there is a high chance `gen` will satisfy
   `pred`. By default, `such-that` will try 10 times to generate a value that
@@ -269,47 +269,70 @@ sequences (er, lists)."
   time such-that retries, it will increase the size parameter.
   Examples:
       ;; generate non-empty vectors of integers
-      ;; (note, tcel-not-empty does exactly this)
-      (tcel-such-that tcel-not-empty (tcel-vector tcel-int))
+      ;; (note, tcel-generator-not-empty does exactly this)
+      (tcel-generator-such-that tcel-generator-not-empty (tcel-generator-vector tcel-generator-int))
   "
   (let ((max-tries (or max-tries 10)))
-    (assert (tcel-generator? gen) t "Second arg to such-that must be a generator")
-    (tcel-make-gen
+    (assert (tcel-generator-generator? gen) t "Second arg to such-that must be a generator")
+    (tcel-generator-make-gen
      (lambda (rand-seed size)
-       (tcel-such-that-helper max-tries pred gen max-tries rand-seed size)))))
+       (tcel-generator-such-that-helper max-tries pred gen max-tries rand-seed size)))))
 
 
-(defun tcel-not-empty (gen)
+(defun tcel-generator-not-empty (gen)
   "Modifies a generator so that it doesn't generate empty collections.
   Examples:
       ;; generate a vector of booleans, but never the empty vector
-      (tcel-not-empty (tcel-vector tcel-boolean))
+      (tcel-generator-not-empty (tcel-generator-vector tcel-generator-boolean))
   "
-  (assert (tcel-generator? gen) "Arg to not-empty must be a generator")
-  (tcel-such-that (lambda(coll) (< 0 (length coll))) gen))
+  (assert (tcel-generator-generator? gen) "Arg to not-empty must be a generator")
+  (tcel-generator-such-that (lambda(coll) (< 0 (length coll))) gen))
 
-(defun tcel-no-shrink (gen)
+(defun tcel-generator-no-shrink (gen)
   "Create a new generator that is just like `gen`, except does not shrink
   at all. This can be useful when shrinking is taking a long time or is not
   applicable to the domain."
   (assert (generator? gen) "Arg to no-shrink must be a generator")
-  (tcel-gen-bind gen
-		 (lambda (coll)
-		   (destructuring-bind (root _children) coll
-		     (tcel-gen-pure
-		      (list root '()))))))
+  (tcel-generator-gen-bind gen
+			   (lambda (coll)
+			     (destructuring-bind (root _children) coll
+			       (tcel-generator-gen-pure
+				(list root '()))))))
 
 (defun shrink-2 (gen)
   "Create a new generator like `gen`, but will consider nodes for shrinking
   even if their parent passes the test (up to one additional level)."
 
-  (assert (tcel-generator? gen) "Arg to shrink-2 must be a generator")
-  (tcel-gen-bind gen (lambda (a) (tcel-gen-pure (qc-rt-collapse a)))))
+  (assert (tcel-generator-generator? gen) "Arg to shrink-2 must be a generator")
+  (tcel-generator-gen-bind gen (lambda (a) (tcel-generator-gen-pure (qc-rt-collapse a)))))
 
-(defun tcel-boolean (&rest args)
-  (tcel-elements [t nil]))
-  
-  
+(defun tcel-generator-boolean (&rest args)
+  (tcel-generator-elements [t nil]))
+
+
+(defun tcel-generator-tuple (&rest generators)
+  "Create a generator that returns a vector, whose elements are chosen
+  from the generators in the same position. The individual elements shrink
+  according to their generator, but the value will never shrink in count.
+  Examples:
+      (setq t (tcel-generator-tuple tcel-generator-int tcel-generator-boolean))
+      (tcel-generator-sample t)
+      ;; => ([1 true] [2 true] [2 false] [1 false] [0 true] [-2 false] [-6 false]
+      ;; =>  [3 true] [-4 false] [9 true]))
+  "
+
+  (assert (every tcel-generator-generator? generators) t
+          "Args to tuple must be generators")
+  (tcel-generator-gen-bind (tcel-generator-gen-seq->seq-gen generators)
+			   (lambda (roses)
+			     (tcel-generator-gen-pure (qc-rt-zip 'list roses)))))
+
+(defun tcel-generator-int (&rest _)
+  "Generates a positive or negative integer bounded by the generator's
+  `size` parameter.
+  Really returns a long"
+  (tcel-generator-sized (lambda (size) (tcel-generator-choose (- size) size))))
+
 
 
 (provide 'generator)
