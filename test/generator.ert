@@ -1,35 +1,39 @@
-(ert-deftest test-tcel-call-gen ()
-  (should (equal 1 (tcel-call-gen (tcel-gen-pure 1) nil nil))))
+(ert-deftest test-tcel-generator-call-gen ()
+  (should (equal 1 (tcel-generator-call-gen (tcel-generator-gen-pure 1) nil nil))))
 
 
-(ert-deftest test-tcel-rand-range ()
-  (let ((rnd (tcel-random 42))	(result (list)))
+(ert-deftest test-tcel-generator-rand-range ()
+  (let ((rnd (tcel-generator-random 42))	(result (list)))
     (should (equal '(42 13 29 23 26 38 48 42 47 30)
 		   (dotimes (_ 10 result)
-		     (setq result (cons (tcel-rand-range rnd 10 50) result)))))))
+		     (setq result (cons (tcel-generator-rand-range rnd 10 50) result)))))))
 
 
-(ert-deftest test-tcel-choose ()
+(ert-deftest test-tcel-generator-choose ()
   (should (equal '(19 13 17 13 18 16 18 18 11 17)
-		 (tcel-sample (tcel-choose 10 20)))))
+		 (tcel-generator-sample (tcel-generator-choose 10 20)))))
 	     
     
 	     
-(ert-deftest test-tcel-elements ()
+(ert-deftest test-tcel-generator-elements ()
     (should (equal '(:d :b :c :b :c :c :c :d :a :c)
-		   (tcel-sample (tcel-elements '(:a :b :c :d))))))
+		   (tcel-generator-sample (tcel-generator-elements '(:a :b :c :d))))))
 
 
-(ert-deftest test-tcel-such-that ()
+(ert-deftest test-tcel-generator-such-that ()
 
       (should (equal '(:d :c  :c :c :c :d :a :c :d :c)
-		   (tcel-sample (tcel-such-that 
+		   (tcel-generator-sample (tcel-generator-such-that 
 				 (lambda (a) (not (equal a :b)))
-				 (tcel-elements '(:a :b :c :d))
+				 (tcel-generator-elements '(:a :b :c :d))
 				 9)))))
 
-(ert-deftest test-tcel-boolean ()
+(ert-deftest test-tcel-generator-boolean ()
 
       (should (equal '(nil t nil t nil nil nil nil t nil)
-		   (tcel-sample (tcel-boolean)))))
+		   (tcel-generator-sample (tcel-generator-boolean)))))
+
+(ert-deftest test-tcel-generator-int ()
+      (should (equal '(0 0 1 -1 2 1 3 4 -6 3)
+		   (tcel-generator-sample (tcel-generator-int)))))
 
