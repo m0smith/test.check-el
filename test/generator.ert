@@ -188,3 +188,16 @@
 							      (tcel-generator-int))
 					nil
 					-999))))
+
+
+(ert-deftest test-tcel-generator-hash-table ()
+  (let ((ht (tcel-generator-sample (tcel-generator-hash-table (tcel-generator-int)
+							      (tcel-generator-int))
+				   nil
+				   -999)))
+    (should (equal 3        (gethash -3 (elt ht 5) 'default)))
+    (should (equal -1       (gethash 0  (elt ht 4) 'default)))
+    (should (equal 'default (gethash 0  (elt ht 3) 'default)))
+    (should (equal 'default (gethash 0  (elt ht 2) 'default)))
+    (should (equal 0        (gethash 0  (elt ht 1) 'default)))
+    (should (equal 'default (gethash 1  (elt ht 0) 'default)))))
