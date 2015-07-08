@@ -469,5 +469,68 @@ sequences (er, lists)."
 				       rtnval))
 			 input)))
 
+
+(defun plist-keys (pl)
+  (when pl
+    (cl-loop for (key _) on pl by 'cddr
+	     collect key)))
+  
+(defun plist-values (pl)
+  (when pl
+    (cl-loop for (_ value) on pl by 'cddr
+	     collect value)))
+
+(defun tcel-generator-keyed-alist (&rest kvs)
+  "
+   Returns a generator that makes maps with the supplied keys and
+   values generated using the supplied generators.
+  Examples:
+    (tcel-generator-keyed-alist :a tcel-generator-boolean :b tcel-generator-nat)
+  "
+  (assert (evenp (length kvs)))
+  (let ((ks (plist-keys kvs))
+	(vs (plist-values kvs)))
+    (assert (every 'tcel-generator-generator? vs)
+            "Value args to hash-map must be generators")
+    (tcel-generator-fmap (lambda (a) (-zip ks a))
+          (apply 'tcel-generator-tuple vs))))
+
+
+(defun tcel-generator-keyed-plist (&rest kvs)
+  "
+   Returns a generator that makes a plist with the supplied keys and
+   values generated using the supplied generators.
+  Examples:
+    (tcel-generator-keyed-plist :a tcel-generator-boolean :b tcel-generator-nat)
+  "
+  (assert (evenp (length kvs)))
+  (let ((ks (plist-keys kvs))
+	(vs (plist-values kvs)))
+    (assert (every 'tcel-generator-generator? vs)
+            "Value args to hash-map must be generators")
+    (tcel-generator-fmap (lambda (a) (-interleave ks a))
+          (apply 'tcel-generator-tuple vs))))
+
+
+(defun tcel-generator-keyed-hash-table (&rest kvs)
+  "
+   Returns a generator that makes a plist with the supplied keys and
+   values generated using the supplied generators.
+  Examples:
+    (tcel-generator-keyed-plist :a tcel-generator-boolean :b tcel-generator-nat)
+  "
+  (assert (evenp (length kvs)))
+  (let ((ks (plist-keys kvs))
+	(vs (plist-values kvs)))
+    (assert (every 'tcel-generator-generator? vs)
+            "Value args to hash-map must be generators")
+    (tcel-generator-fmap (lambda (a) (let ((rtnval (make-hash-table)))
+				       (-zip-with (lambda (k v)
+						    (puthash k v rtnval))
+						  ks a)
+				       rtnval))
+			 (apply 'tcel-generator-tuple vs))))
+
+
 (provide 'generator)
 ;;; generator.el ends here
