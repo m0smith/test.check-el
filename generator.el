@@ -532,5 +532,120 @@ sequences (er, lists)."
 			 (apply 'tcel-generator-tuple vs))))
 
 
+(defun tcel-generator-char ( &rest _)
+  "Generates character from 0-255."
+  (tcel-generator-choose 0 255)))
+
+(defun tcel-generator-char-ascii ( &rest _)
+  "Generate only ascii character."
+  (tcel-generator-choose 32 126)))
+
+(defun tcel-generator-char-alphanumeric  ( &rest _)
+  "Generate alphanumeric characters."
+  (tcel-generator-one-of (list (tcel-generator-choose 48 57)
+			       (tcel-generator-choose 65 90)
+			       (tcel-generator-choose 97 122))))
+
+(defalias  tcel-generator-char-alpha-numeric    'tcel-generator-char-alphanumeric
+  "Deprecated - use char-alphanumeric instead.
+  Generate alphanumeric characters."
+)
+
+(defun tcel-generator-char-alpha ( &rest _ )
+  "Generate alpha characters."
+  (tcel-generator-one-of (list(tcel-generator-choose 65 90)
+			      (tcel-generator-choose 97 122))))
+
+(defun tcel-generator-char-symbol-special  ( &rest _)
+  "Generate non-alphanumeric characters that can be in a symbol."
+  (tcel-generator-elements [?* ?+ ?! ?- ?_ ??]))
+
+(defun tcel-generator-char-keyword-rest  ( &rest _)
+  "Generate characters that can be the char following first of a keyword."
+  (tcel-generator-frequency (list (list 2 (tcel-generator-char-alphanumeric))
+				  (list 1 (tcel-generator-char-symbol-special)))))
+
+(defun tcel-generator-char-keyword-first  ( &rest _)
+  "Generate characters that can be the first char of a keyword."
+  (tcel-generator-frequency (list (list 2 (tcel-generator-char-alpha))
+				  (list 1 (tcel-generator-char-symbol-special)))))
+
+
+(defun tcel-generator-string (&rest _)
+  "Generate strings. May generate unprintable characters."
+  (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char))))
+
+
+(defun tcel-generator-string-ascii (&rest _)
+  "Generate ascii strings."
+  (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char-ascii))))
+
+(defun tcel-generator-string-alphanumeric (&rest _)
+  "Generate alphanumeric strings."
+  (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char-alphanumeric))))
+
+(defun  tcel-generator-string-alpha-numeric 'tcel-generator-string-alphanumeric
+  "Deprecated - use string-alphanumeric instead.
+  Generate alphanumeric strings."
+  )
+
+(defun tcel-generator-+-or---digit? (c d)
+  "Returns true if c is \\+ or \\- and d is non-nil and a digit.
+  Symbols that start with +3 or -2 are not readable because they look
+  like numbers.0 - 9"
+  (and d
+       (or (eq ?+ c)
+	   (eq ?- c))
+       (or 
+	(and (<= ?0 d) (>= ?9 d)))))
+
+(defun tcel-generator-keyword-segment-rest (&rest _)
+  "Generate segments of a keyword (between \\:)"
+  (->> (tcel-generator-tuple (tcel-generator-char-keyword-rest) (tcel-generator-vector (tcel-generator-char-keyword-rest)))
+       (tcel-generator-fmap (lambda (a) (concat (list (car a)) (cadr a))))))
+
+(defun tcel-generator-keyword-segment-first (&rest _)
+  "Generate segments of a keyword that can be first (between \\:)"
+  (->> (tcel-generator-tuple (tcel-generator-char-keyword-first) (tcel-generator-vector (tcel-generator-char-keyword-rest)))
+       (tcel-generator-fmap (lambda (a) (concat (list (car a)) (cadr a))))))
+
+(defun tcel-generator-keyword (&rest _)
+  "Generate keywords without namespaces."
+  (->> (tcel-generator-tuple (tcel-generator-keyword-segment-first) (tcel-generator-list (tcel-generator-keyword-segment-rest)))
+       (tcel-generator-fmap (lambda (a)
+			      (intern (apply 'concat ":" (car a) (cadr a)))))))
+
+
+(defun tcel-generator-symbol (&rest _)
+  "Generate keywords without namespaces."
+  (->> (tcel-generator-tuple (tcel-generator-keyword-segment-first) (tcel-generator-list (tcel-generator-keyword-segment-rest)))
+       (tcel-generator-fmap (lambda (a)
+			      (intern (apply 'concat (car a) (cadr a)))))))
+
+(defun tcel-generator-simple-type ()
+  (tcel-generator-one-of (list (tcel-generator-int )
+			       (tcel-generator-char )
+			       (tcel-generator-string )
+			       (tcel-generator-boolean )
+			       (tcel-generator-keyword )
+			       (tcel-generator-symbol))))
+
+(defun tcel-generator-simple-type-printable ()
+  (tcel-generator-one-of (list( tcel-generator-int )
+			       (tcel-generator-char-ascii )
+			       (tcel-generator-string-ascii )
+			       (tcel-generator-boolean )
+			       (tcel-generator-keyword )
+			       (tcel-generator-symbol))))
+
+
+(defun tcel-generator-container-type  (inner-type)
+  (tcel-generator-one-of (list (tcel-generator-vector inner-type)
+			       (tcel-generator-list inner-type)
+			       (tcel-generator-alist inner-type inner-type)
+			       (tcel-generator-plist inner-type inner-type)
+			       (tcel-generator-hash-table inner-type inner-type))))
+
+
 (provide 'generator)
 ;;; generator.el ends here
