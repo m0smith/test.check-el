@@ -436,6 +436,23 @@ sequences (er, lists)."
 			 (tcel-generator-vector (tcel-generator-tuple index-gen index-gen) 0 (* 2 (length coll))))))
 
 
+(defun tcel-generator-alist (key-gen val-gen)
+  "Create a generator that generates alists, with keys chosen from
+  `key-gen` and values chosen from `val-gen`."
+
+  (let ((input (tcel-generator-vector (tcel-generator-tuple key-gen val-gen))))
+    (tcel-generator-fmap (lambda (v) (mapcar (lambda (t) (cons (elt t 0) (elt t 1)))
+					     v)) 
+			 input)))
+
+(defun tcel-generator-plist (key-gen val-gen)
+  "Create a generator that generates plists, with keys chosen from
+  `key-gen` and values chosen from `val-gen`."
+
+  (let ((input (tcel-generator-vector (tcel-generator-tuple key-gen val-gen))))
+    (tcel-generator-fmap (lambda (v) (apply 'append (mapcar (lambda (t) (list (elt t 0) (elt t 1)))
+							    v)))
+			 input)))
 
 (provide 'generator)
 ;;; generator.el ends here
