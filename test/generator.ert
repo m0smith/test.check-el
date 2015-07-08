@@ -138,3 +138,53 @@
 		   (:d :b :c :a)
 		   (:d :b :c :a))
 		 (tcel-generator-sample (tcel-generator-shuffle '(:a :b :c :d)) nil -34))))
+
+
+(ert-deftest test-tcel-generator-alist ()
+  (should (equal '(nil
+		   ((0 . 0))
+		   nil nil
+		   ((0 . -1)
+		    (2 . 1))
+		   ((-3 . 3)
+		    (2 . -2)
+		    (3 . 4)
+		    (-2 . 5))
+		   ((-6 . -1)
+		    (-1 . 0)
+		    (0 . 0)
+		    (-4 . -3)
+		    (6 . 5)
+		    (1 . -5))
+		   ((-6 . -3)
+		    (0 . 7)
+		    (5 . -1)
+		    (-2 . -1)
+		    (3 . 3)
+		    (4 . -7)
+		    (3 . 4))
+		   ((0 . -6)
+		    (-6 . 2)
+		    (-4 . 6))
+		   ((6 . 0)
+		    (-5 . 9)
+		    (3 . 1)))
+		 (tcel-generator-sample (tcel-generator-alist (tcel-generator-int)
+							      (tcel-generator-int))
+					nil
+					-999))))
+
+(ert-deftest test-tcel-generator-plist ()
+  (should (equal '(nil
+		   (0 0)
+		   nil nil
+		   (0 -1 2 1)
+		   (-3 3 2 -2 3 4 -2 5)
+		   (-6 -1 -1 0 0 0 -4 -3 6 5 1 -5)
+		   (-6 -3 0 7 5 -1 -2 -1 3 3 4 -7 3 4)
+		   (0 -6 -6 2 -4 6)
+		   (6 0 -5 9 3 1))
+		 (tcel-generator-sample (tcel-generator-plist (tcel-generator-int)
+							      (tcel-generator-int))
+					nil
+					-999))))
