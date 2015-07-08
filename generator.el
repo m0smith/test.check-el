@@ -64,8 +64,8 @@
   "Takes a sequence of generators and returns a generator of
 sequences (er, lists)."
   (tcel-generator-make-gen
-   (lambda (rnd size)
      (mapcar (lambda (a) (tcel-generator-call-gen a rnd size)) gens))))
+   (lambda (rnd size)
 
 
 ;; Exported generator functions
@@ -133,19 +133,19 @@ sequences (er, lists)."
 (defun tcel-generator-sample-seq* (generator rnd a)
   (qc-rt-root (tcel-generator-call-gen generator rnd a)))
 
-(defun tcel-generator-sample-seq (generator &optional max-size)
+(defun tcel-generator-sample-seq (generator &optional max-size seed)
   "Return a sequence of realized values from `generator`."
   (let* ((max-size (or max-size 100))
-	 (r (tcel-generator-random))
+	 (r (if seed (tcel-generator-random seed) (tcel-generator-random)))
 	 (size-seq (tcel-generator-make-size-range-seq max-size)))
     (cljs-el-map (lambda (a) (tcel-generator-sample-seq* generator r a)) size-seq)))
 
-(defun tcel-generator-sample (generator &optional num-samples)
+(defun tcel-generator-sample (generator &optional num-samples seed)
   "Return a sequence of `num-samples` (default 10)
   realized values from `generator`."
   (assert (tcel-generator-generator? generator) "First arg to sample must be a generator")
   (let ((num-samples (or num-samples 10)))
-    (cljs-el-list (cljs-el-take num-samples (tcel-generator-sample-seq generator)))))
+    (cljs-el-list (cljs-el-take num-samples (tcel-generator-sample-seq generator nil seed)))))
 
 ;; Internal Helpers
 ;; ---------------------------------------------------------------------------
@@ -389,7 +389,7 @@ sequences (er, lists)."
 				  (lambda (rose)
 				    (tcel-generator-gen-pure (qc-rt-filter
 							      (lambda (v) (and (>= (length v) min-elements)
-									       (<= (length v) max-elements))) rose))))))))))
+									       (<= (length v) max-elements))) rose)))))))))
 
 (defun tcel-generator-vector (generator &optional num-elements max-elements)
   "Create a generator whose elements are chosen from `gen`. The count of the
@@ -414,12 +414,26 @@ sequences (er, lists)."
 
 
 (defun tcel-generator-swap (coll indexes)
-  (let* ((i1 (elt indexes 0))
-	 (i2 (elt indexes 1))
-	 (v1 (elt coll i1))
-	 (v2 (elt coll i2)))
-    (-replace-at i1 v2 
-		 (-replace-at i2 v1 coll))))
+  (when indexes
+    (let* ((i1 (elt indexes 0))
+	   (i2 (elt indexes 1))
+	   (v1 (elt coll i1))
+	   (v2 (elt coll i2)))
+      (-replace-at i1 v2 
+		   (-replace-at i2 v1 coll)))))
+
+
+(defun tcel-generator-shuffle (coll)
+  "Create a generator that generates random permutations of `coll`. Shrinks
+  toward the original collection: `coll`."
+  (let ((index-gen (tcel-generator-choose 0 (1- (length coll)))))
+    (tcel-generator-fmap (lambda (a)  (cljs-el-reduce 'tcel-generator-swap coll a))
+          ;; a vector of swap instructions, with count between
+          ;; zero and 2 * count. This means that the average number
+          ;; of instructions is count, which should provide sufficient
+          ;; (though perhaps not 'perfect') shuffling. This still gives us
+          ;; nice, relatively quick shrinks.
+			 (tcel-generator-vector (tcel-generator-tuple index-gen index-gen) 0 (* 2 (length coll))))))
 
 
 
