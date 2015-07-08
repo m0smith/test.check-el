@@ -10,19 +10,19 @@
 
 
 (ert-deftest test-tcel-generator-choose ()
-  (should (equal '(19 13 17 13 18 16 18 18 11 17)
-		 (tcel-generator-sample (tcel-generator-choose 10 20)))))
+  (should (equal '(15 20 18 20 17 14 13 15 10 18)
+		 (tcel-generator-sample (tcel-generator-choose 10 20) nil 42))))
 	     
     
 	     
 (ert-deftest test-tcel-generator-elements ()
-    (should (equal '(:d :b :c :b :c :c :c :d :a :c)
-		   (tcel-generator-sample (tcel-generator-elements '(:a :b :c :d))))))
+    (should (equal '(:c :d :d :a :a :a :b :d :c :a)
+		   (tcel-generator-sample (tcel-generator-elements '(:a :b :c :d)) nil 4100))))
 
 
 (ert-deftest test-tcel-generator-such-that ()
 
-      (should (equal '(:d :c  :c :c :c :d :a :c :d :c)
+      (should (equal '(:d :c :a :d :a :a :a :a :a :d)
 		   (tcel-generator-sample (tcel-generator-such-that 
 				 (lambda (a) (not (equal a :b)))
 				 (tcel-generator-elements '(:a :b :c :d))
@@ -30,103 +30,111 @@
 
 (ert-deftest test-tcel-generator-boolean ()
 
-      (should (equal '(nil t nil t nil nil nil nil t nil)
-		   (tcel-generator-sample (tcel-generator-boolean)))))
+      (should (equal '(nil t t nil nil t t nil t t)
+		   (tcel-generator-sample (tcel-generator-boolean) nil 44))))
 
 (ert-deftest test-tcel-generator-int ()
-      (should (equal '(0 0 1 -1 2 1 3 4 -6 3)
-		   (tcel-generator-sample (tcel-generator-int)))))
+      (should (equal '(0 0 1 2 2 -1 2 1 3 7)
+		   (tcel-generator-sample (tcel-generator-int) nil -99))))
 
 
 
 (ert-deftest test-tcel-generator-tuple ()
-      (should (equal '((0 t)
-		       (1 t)
-		       (1 nil)
-		       (2 nil)
-		       (-3 nil)
-		       (4 nil)
-		       (-4 nil)
-		       (3 nil)
-		       (4 t)
-		       (-1 nil))
-		   (tcel-generator-sample (tcel-generator-tuple (tcel-generator-int) (tcel-generator-boolean))))))
+      (should (equal '       ((0 t)
+			      (1 t)
+			      (-1 t)
+			      (1 nil)
+			      (2 t)
+			      (-4 t)
+			      (-6 t)
+			      (0 t)
+			      (-4 t)
+			      (0 nil))
+		   (tcel-generator-sample (tcel-generator-tuple (tcel-generator-int) (tcel-generator-boolean)) nil 8888))))
 
 (ert-deftest test-tcel-generator-nat ()
-  (should (equal '(0 0 1 1 2 1 3 4 6 3)
-		 (tcel-generator-sample (tcel-generator-nat)))))
-
-
-
+  (should (equal '(0 1 1 0 2 1 3 7 5 1)
+		 (tcel-generator-sample (tcel-generator-nat) nil 876))))
 
 (ert-deftest test-tcel-generator-pos-int ()
-      (should (equal '(0 0 1 1 2 1 3 4 6 3)
-		   (tcel-generator-sample (tcel-generator-pos-int)))))
+      (should (equal '(0 1 0 3 0 3 4 7 1 4)
+		   (tcel-generator-sample (tcel-generator-pos-int) nil 88))))
 
 
 (ert-deftest test-tcel-generator-neg-int ()
-      (should (equal '(0 0 -1 -1 -2 -1 -3 -4 -6 -3)
-		   (tcel-generator-sample (tcel-generator-neg-int)))))
+      (should (equal '(0 -1 0 -3 0 -3 -6 -1 -1 -1)
+		   (tcel-generator-sample (tcel-generator-neg-int) nil -12))))
 
 (ert-deftest test-tcel-generator-s-pos-int ()
-      (should (equal '(1 1 2 2 3 2 4 5 7 4)
-		   (tcel-generator-sample (tcel-generator-s-pos-int)))))
+      (should (equal '(1 2 1 1 2 6 6 4 7 2)
+		   (tcel-generator-sample (tcel-generator-s-pos-int) nil -9888))))
 
 
 (ert-deftest test-tcel-generator-s-neg-int ()
-      (should (equal '(-1 -1 -2 -2 -3 -2 -4 -5 -7 -4)
-		   (tcel-generator-sample (tcel-generator-s-neg-int)))))
+      (should (equal '(-1 -2 -3 -3 -3 -5 -3 -3 -5 -3)
+		   (tcel-generator-sample (tcel-generator-s-neg-int) nil -8888))))
 
 (ert-deftest test-tcel-generator-vector ()
   (should (equal '([]
 		   []
-		   [-1 1]
-		   [2 2]
 		   []
-		   [4 2 -3 3]
-		   [0 3 -2 -1]
-		   [7 5 6 3 1 -2]
-		   [-8 6 -2 -7 -3 1]
-		   [-5 4 6 1 2 2])
-		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int)))))
+		   [-1 -3 3]
+		   [0]
+		   [-3 -2 -1 -3]
+		   []
+		   [2 -7 6 -1 -5]
+		   [7 -4 5]
+		   [-2 -5])
+		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int)) nil 77)))
 
   (should (equal '((0 0 0 0)
-		   (1 0 1 1)
-		   (-2 1 2 1)
-		   (-2 2 1 0)
-		   (2 -1 -1 3)
-		   (5 4 4 2)
-		   (1 -2 2 -6)
-		   (5 -2 -7 -2)
-		   (1 3 -5 4)
-		   (6 1 2 2))
-		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int) 4))))
+		   (0 -1 1 0)
+		   (0 1 -1 -1)
+		   (0 -2 -3 2)
+		   (1 -4 4 -1)
+		   (-3 -1 5 -3)
+		   (4 -3 -1 -3)
+		   (1 -5 -1 -4)
+		   (-7 0 -5 1)
+		   (-6 -7 -3 -3))
+		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int) 4) nil 77)))
 
   (should (equal '([0 0 0 0 0 0 0 0]
-		   [1 1 -1 1 1 0 1]
-		   [0 1 2 2 2]
-		   [0 -1 1 -3 2 -1 -3]
-		   [0 2 -2 2 3]
-		   [1 1 0 2 -3 2]
-		   [-1 1 -1 -3 -6 3 2]
-		   [7 2 1 5 -7 -7 -7 4]
-		   [-6 1 -6 -4]
-		   [1 -9 -4 8 -4 -8])
-		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int) 4 8)))))
+		   [-1 1 -1 -1]
+		   [0 1 -1 2 1 -2 -1 2]
+		   [1 -2 -2 -3 3 -1]
+		   [4 4 -4 3]
+		   [-4 -1 2 -5 -3]
+		   [-1 -3 2 -1 1 -3 5]
+		   [0 1 -6 -3 -4 -6 -7]
+		   [-7 6 -3 3 -6 -3 7]
+		   [1 6 2 0 8 0])
+		 (tcel-generator-sample (tcel-generator-vector (tcel-generator-int) 4 8) nil 66 ))))
 
 (ert-deftest test-tcel-generator-list ()
-  (should (equal ' (nil nil
-			(-1 1)
-			(2 2)
-			nil
-			(4 2 -3 3)
-			(0 3 -2 -1)
-			(7 5 6 3 1 -2)
-			(-8 6 -2 -7 -3 1)
-			(-5 4 6 1 2 2))
-
-		 (tcel-generator-sample (tcel-generator-list (tcel-generator-int))))))
+  (should (equal '(nil nil nil
+		       (-3 3)
+		       nil nil
+		       (3)
+		       (5 -6 0 -7 7 -2 -4)
+		       (7 -3 -1)
+		       (-6 0 3 3 4 6))
+		 (tcel-generator-sample (tcel-generator-list (tcel-generator-int)) nil -9876))))
 
 (ert-deftest test-tcel-generator-swap ()
   (should (equal '(:a :d :c :b)
 		 (tcel-generator-swap '(:a :b :c :d) '(1 3)))))
+
+
+(ert-deftest test-tcel-generator-shuffle ()
+  (should (equal '((:c :b :d :a)
+		   (:d :a :c :b)
+		   (:b :c :a :d)
+		   nil
+		   (:b :c :d :a)
+		   nil
+		   (:b :c :a :d)
+		   (:a :d :c :b)
+		   (:d :b :c :a)
+		   (:d :b :c :a))
+		 (tcel-generator-sample (tcel-generator-shuffle '(:a :b :c :d)) nil -34))))
