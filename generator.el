@@ -454,5 +454,20 @@ sequences (er, lists)."
 							    v)))
 			 input)))
 
+(defun tcel-generator-hash-table (key-gen val-gen)
+  "Create a generator that generates hash-tables, with keys chosen from
+  `key-gen` and values chosen from `val-gen`."
+
+  (let ((input (tcel-generator-vector (tcel-generator-tuple key-gen val-gen)))
+	(rtnval (make-hash-table)))
+    (tcel-generator-fmap (lambda (v) (let ((rtnval (make-hash-table)))
+				       (mapcar (lambda (t) (puthash (elt t 0) 
+								    (elt t 1)
+								    rtnval))
+				       
+					       v)
+				       rtnval))
+			 input)))
+
 (provide 'generator)
 ;;; generator.el ends here
