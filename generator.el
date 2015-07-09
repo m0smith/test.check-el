@@ -64,8 +64,8 @@
   "Takes a sequence of generators and returns a generator of
 sequences (er, lists)."
   (tcel-generator-make-gen
-     (mapcar (lambda (a) (tcel-generator-call-gen a rnd size)) gens))))
    (lambda (rnd size)
+     (map 'vector (lambda (a) (tcel-generator-call-gen a rnd size)) gens))))
 
 
 ;; Exported generator functions
@@ -154,12 +154,14 @@ sequences (er, lists)."
   "Return a non-lazy sequence"
   (cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
 
-(defun tcel-generator-shrink-int  (n)
+(defun tcel-generator-shrink-int  (n &optional pred)
   "Return a non-lazy list"
-  (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n)))
+  (if pred
+      (-filter pred (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n)))
+    (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n))))
 
-(defun tcel-generator-int-rose-tree  (value)
-  (list value  (cljs-el-map 'tcel-generator-int-rose-tree (tcel-generator-shrink-int value))))
+(defun tcel-generator-int-rose-tree  (value &optional pred)
+  (vector value  (cljs-el-map 'tcel-generator-int-rose-tree (tcel-generator-shrink-int value pred))))
 
 (defun tcel-generator-rand-range (rnd lower upper)
   (assert (<= lower upper) t "Lower must be <= upper")
@@ -193,10 +195,10 @@ sequences (er, lists)."
   `min-range` to `max-range`, inclusive."
   (tcel-generator-make-gen
    (lambda (rnd _size)
-     (let ((value (tcel-generator-rand-range rnd lower upper)))
-       (qc-rt-filter
-	(lambda (a) (and (>= a lower) (<= a upper)))
-	(tcel-generator-int-rose-tree value))))))
+     (let ((value (tcel-generator-rand-range rnd lower upper))
+	   (pred (lambda (a) (and (>= a lower) (<= a upper)))))
+       (qc-rt-filter pred
+	(tcel-generator-int-rose-tree value pred))))))
 
 
 (defun tcel-generator-one-of  (generators)
@@ -534,11 +536,11 @@ sequences (er, lists)."
 
 (defun tcel-generator-char ( &rest _)
   "Generates character from 0-255."
-  (tcel-generator-choose 0 255)))
+  (tcel-generator-choose 0 255))
 
 (defun tcel-generator-char-ascii ( &rest _)
   "Generate only ascii character."
-  (tcel-generator-choose 32 126)))
+  (tcel-generator-choose 32 126))
 
 (defun tcel-generator-char-alphanumeric  ( &rest _)
   "Generate alphanumeric characters."
@@ -546,7 +548,7 @@ sequences (er, lists)."
 			       (tcel-generator-choose 65 90)
 			       (tcel-generator-choose 97 122))))
 
-(defalias  tcel-generator-char-alpha-numeric    'tcel-generator-char-alphanumeric
+(defalias  'tcel-generator-char-alpha-numeric    'tcel-generator-char-alphanumeric
   "Deprecated - use char-alphanumeric instead.
   Generate alphanumeric characters."
 )
@@ -599,15 +601,21 @@ sequences (er, lists)."
        (or 
 	(and (<= ?0 d) (>= ?9 d)))))
 
+(defun tcel-generator-to-list (coll)
+  "Convert a simple sequence into a list"
+  (when coll
+    (cond ((listp coll) coll)
+	  (t (mapcar 'identity coll)))))
+
 (defun tcel-generator-keyword-segment-rest (&rest _)
   "Generate segments of a keyword (between \\:)"
   (->> (tcel-generator-tuple (tcel-generator-char-keyword-rest) (tcel-generator-vector (tcel-generator-char-keyword-rest)))
-       (tcel-generator-fmap (lambda (a) (concat (list (car a)) (cadr a))))))
+       (tcel-generator-fmap (lambda (a) (concat (when (car a) (list (car a)))  (tcel-generator-to-list (cadr a)))))))
 
 (defun tcel-generator-keyword-segment-first (&rest _)
   "Generate segments of a keyword that can be first (between \\:)"
   (->> (tcel-generator-tuple (tcel-generator-char-keyword-first) (tcel-generator-vector (tcel-generator-char-keyword-rest)))
-       (tcel-generator-fmap (lambda (a) (concat (list (car a)) (cadr a))))))
+       (tcel-generator-fmap (lambda (a) (concat  (when (car a) (list (car a))) (tcel-generator-to-list (cadr a)))))))
 
 (defun tcel-generator-keyword (&rest _)
   "Generate keywords without namespaces."
@@ -618,7 +626,8 @@ sequences (er, lists)."
 
 (defun tcel-generator-symbol (&rest _)
   "Generate keywords without namespaces."
-  (->> (tcel-generator-tuple (tcel-generator-keyword-segment-first) (tcel-generator-list (tcel-generator-keyword-segment-rest)))
+  (->> (tcel-generator-tuple (tcel-generator-keyword-segment-first) 
+			     (tcel-generator-list (tcel-generator-keyword-segment-rest)))
        (tcel-generator-fmap (lambda (a)
 			      (intern (apply 'concat (car a) (cadr a)))))))
 

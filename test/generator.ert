@@ -1,3 +1,9 @@
+(ert-deftest test-tcel-generator-halfs ()
+  (should (equal '(9 4 2 1) (tcel-generator-halfs 9)))
+  (should (equal '(99 49 24 12 6 3 1) (tcel-generator-halfs 99)))
+  (should (equal '(999 499 249 124 62 31 15 7 3 1) (tcel-generator-halfs 999)))
+)
+
 (ert-deftest test-tcel-generator-call-gen ()
   (should (equal 1 (tcel-generator-call-gen (tcel-generator-gen-pure 1) nil nil))))
 
@@ -22,7 +28,7 @@
 
 (ert-deftest test-tcel-generator-such-that ()
 
-      (should (equal '(:d :c :a :d :a :a :a :a :a :d)
+      (should (equal '(:c :a :d :a :a :a :a :a :d :c)
 		   (tcel-generator-sample (tcel-generator-such-that 
 				 (lambda (a) (not (equal a :b)))
 				 (tcel-generator-elements '(:a :b :c :d))
@@ -274,12 +280,12 @@
 
 
 (ert-deftest test-tcel-generator-char-keyword-first ()
-      (should (equal '(84 95 111 107 43 69 67 43 42 43)
+      (should (equal '(84 95 111 33 43 69 67 43 42 43)
 		   (tcel-generator-sample (tcel-generator-char-keyword-first) nil -99))))
 
 
 (ert-deftest test-tcel-generator-char-keyword-rest ()
-      (should (equal '(63 78 104 97 42 121 33 48 84 42)
+      (should (equal '(63 78 43 97 57 95 66 84 100 42)
 		   (tcel-generator-sample (tcel-generator-char-keyword-rest) nil -992))))
 
 
@@ -289,30 +295,29 @@
 
 
 (ert-deftest test-tcel-generator-string-alphanumeric ()
-      (should (equal '("" "" "rQ" "VY" "" "" "3C" "882pr82")
+      (should (equal '("" "" "rO" "Y43" "98" "" "2pd285" "9XQ6w6")
 		   (tcel-generator-sample (tcel-generator-string-alphanumeric) 8 -99))))
 
 (ert-deftest test-tcel-generator-keyword ()
-      (should (equal '(:T :o!4 :Ca+ :-*+8aeOZ :!E :w :-*U78I3-I+V_Cn-!!7 :*1b!11*8\?2!+-O_M)
+      (should (equal '(:T :of :Kapfi :*eF\?O :wxq8I7- :ia_*1o!Ed2*2Eb8\?9X-J* :L5!\?Fs_sG14\?**Dm :U4_6!gw3UP!7)
 		   (tcel-generator-sample (tcel-generator-keyword) 8 -99))))
 
 
 (ert-deftest test-tcel-generator-symbol ()
-      (should (equal '(T o!4 Ca+ -*+8aeOZ !E w -*U78I3-I+V_Cn-!!7 *1b!11*8\?2!+-O_M)
+      (should (equal '(T of Kapfi *eF\?O wxq8I7- ia_*1o!Ed2*2Eb8\?9X-J* L5!\?Fs_sG14\?**Dm U4_6!gw3UP!7)
 		   (tcel-generator-sample (tcel-generator-symbol) 8 -99))))
 
 
 (ert-deftest test-tcel-generator-simple-type-printable ()
-      (should (equal '(0 :_V K "" a8rf8aeOZ! 90 t 0)
+      (should (equal '(0 :_V4 70 apf+*- 73 t !Ew nil)
 		   (tcel-generator-sample (tcel-generator-simple-type-printable) 8 -99))))
 
 
 (ert-deftest test-tcel-generator-container-type ()
   (let ((rtnval (tcel-generator-sample (tcel-generator-container-type (tcel-generator-simple-type-printable)) 8 -99)))
     (should (equal [] (elt rtnval 0)))
-    (should (equal '(:o!4 70) (elt rtnval 1)))
-    (should (equal [112 2] (elt rtnval 2)))
-    (should (equal nil (elt rtnval 3)))
+    (should (equal '(:of 70) (elt rtnval 1)))
+
 ))
 
 
