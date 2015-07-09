@@ -656,5 +656,47 @@ sequences (er, lists)."
 			       (tcel-generator-hash-table inner-type inner-type))))
 
 
+(defun tcel-generator-recursive-helper (container-gen-fn scalar-gen scalar-size children-size height)
+  (if (zerop height)
+      (tcel-generator-resize scalar-size scalar-gen)
+    (tcel-generator-resize children-size
+			   (funcall container-gen-fn
+				    (tcel-generator-recursive-helper
+				     container-gen-fn scalar-gen
+				     scalar-size children-size (1- height))))))
+
+
+(defun tcel-generator-recursive-gen (container-gen-fn scalar-gen)
+  "This is a helper for writing recursive (tree-shaped) generators. The first
+  argument should be a function that takes a generator as an argument, and
+  produces another generator that 'contains' that generator. The vector function
+  in this namespace is a simple example. The second argument is a scalar
+  generator, like boolean. For example, to produce a tree of booleans:
+    (tcel-generator-recursive-gen 'tcel-generator-vector (tcel-generator-int))
+  Vectors or maps either recurring or containing booleans or integers:
+    (gen/recursive-gen (fn [inner] (gen/one-of [(gen/vector inner)
+                                                (gen/map inner inner)]))
+                       (gen/one-of [gen/boolean gen/int]))
+  "
+
+  (assert (tcel-generator-generator? scalar-gen)
+          "Second arg to recursive-gen must be a generator")
+  (tcel-generator-sized (lambda (size)
+			  (tcel-generator-bind (tcel-generator-choose 1 5)
+					       (lambda (height)
+						 (let ((children-size (floor (expt size (/ 1.0 height)))))
+						   (tcel-generator-recursive-helper container-gen-fn scalar-gen size
+										    children-size height)))))))
+
+(defun tcel-generator-any ()
+  "A recursive generator that will generate many different, often nested, values"
+  (tcel-generator-recursive-gen (tcel-generator-container-type) (tcel-generator-simple-type)))
+
+(defun tcel-generator-any-printable ()
+  "Like any, but avoids characters that the shell will interpret as actions,
+  like 7 and 14 (bell and alternate character set command)"
+  (tcel-generator-recursive-gen 'tcel-generator-container-type (tcel-generator-simple-type-printable)))
+
+
 (provide 'generator)
 ;;; generator.el ends here
