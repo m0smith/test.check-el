@@ -46,6 +46,19 @@
     (apply 'tcel-generator-tuple args)))
 
 
+(defmacro tcel-properties-for-all (bindings &rest body)
+  "Macro sugar for `for-all*`. `for-all` lets you name the parameter
+  and use them in expression, without wrapping them in a lambda. Like
+  `for-all*`, it returns a property.
+  Examples
+  (tcel-properties-for-all (a tcel-generator-int b tcel-generator-int)
+    (>= (+ a b) a))
+  "
+  
+  `(tcel-properties-for-all*
+    ,(cons 'list (plist-values bindings)) 
+    (lambda ,(plist-keys bindings)
+               ,@body)))
 
 (provide 'properties)
 ;;; properties.el ends here
