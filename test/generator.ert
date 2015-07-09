@@ -319,7 +319,7 @@
     (should (equal '(:of 70) (elt rtnval 1)))
 
 ))
-
-
-
+(ert-deftest test-tcel-generator-recursive-gen ()
+  (should (equal '([] [[[1]]] [[]] [] [[-4 -4]] [] [2 -3 3 0] [[]] [[[-4] [0 8]]] [])
+		 (tcel-generator-sample (tcel-generator-recursive-gen 'tcel-generator-vector (tcel-generator-int)) 10 -88))))
 
