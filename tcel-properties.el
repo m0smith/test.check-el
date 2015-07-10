@@ -24,11 +24,12 @@
 
 ;;; Code:
 
-(require 'generator)
+(require 'tcel-generator)
 
 (defun tcel-properties-apply-gen (fn1)
   (lambda (args)
-    (let ((result (catch 'properties (apply fn1 args))))
+    (let ((result (condition-case-unless-debug ex (apply fn1 args)
+		    (error ex))))
       (list :result   result
 	    :function fn1
 	    :args     args))))
@@ -60,5 +61,6 @@
     (lambda ,(plist-keys bindings)
                ,@body)))
 
-(provide 'properties)
+(provide 'tcel-properties)
 ;;; properties.el ends here
+

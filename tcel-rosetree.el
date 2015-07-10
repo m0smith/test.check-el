@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'dash)
+(require 'cljs-el)
 
 (defun qc-rt-exclude-nth (n coll)
   (qc-rt-replace-at n 'qc-rt-excluded coll))
@@ -166,5 +167,5 @@
                          ( helper f seen (qc-rt-make-stack r (rest s)))))))))
     (helper root (make-hash-table :test 'equal) '())))
 
-(provide 'rosetree)
+(provide 'tcel-rosetree)
 ;;; rosetree.el ends here

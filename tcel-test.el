@@ -40,7 +40,7 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
     (and (consp result)
 	 (get (car result) 'error-conditions))))
 
-(defun tcel-tet-assert-check (m)
+(defun tcel-test-assert-check (m)
   "M is a propery list created by `tcel-properties-apply-gen'"
   (let ((result (plist-get m :result)))
   (message "%s" m)
@@ -141,6 +141,58 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
   (ct/report (list :type :shrinking
 		   :property property-fun
 		   :params  failing-params)))
+
+
+(defmacro tcel-test-defspec (name &optional options prop)
+  "Defines a new `ert' test var that uses `quick-check` to verify
+  [property] with the given [args] (should be a sequence of generators),
+  [default-times] times by default.  You can call the function defined as [name]
+  with no arguments to trigger this test directly (i.e., without starting a
+  wider cljs.test run), with a single argument that will override
+  [default-times], or with a map containing any of the keys
+  [:seed :max-size :num-tests]."
+
+  (let ((property (or prop options))
+	(options  (and prop options))
+	(property-sym (make-symbol "property-sym")))
+    
+    
+    `(progn
+       (fset ',property-sym ,property)
+       (put ',property-sym :name ',name)
+       (ert-deftest ,name () ;(&optional times quick-check-options)
+	 (let* ((options (tcel-test-process-options ,options))
+		(times  (plist-get options :num-tests))
+					;(seed (plist-get quick-check-options :seed))
+		(seed 10)
+					;(max-size (plist-get quick-check-options :max-size))
+		(max-size 11))
+	   
+	   (apply 'tcel-check-quick-check times ,property-sym) ;quick-check-options)
+	   (message "%s %s %s" 'tcel--quick-check times ',property-sym)
+	   ))
+       
+       (put ',name :defspec t)
+       (put ',name :test (lambda () (tcel-test-assert-check (plist-put ',name :test-var ',name))))))) 
+	;~(vary-meta name assoc
+	;	    ::defspec true
+;		    :test `#(cljs.test.check.cljs-test/assert-check
+;			     (assoc (~name) :test-var (str '~name))))
+;        ([] (let [options# (process-options ~options)]
+;              (apply ~name (:num-tests options#) (apply concat options#))))
+;        ([~'times & {:keys [~'seed ~'max-size] :as ~'quick-check-opts}]
+;         (apply
+;           cljs.test.check/quick-check
+;           ~'times
+;'           (vary-meta ~property assoc :name (str '~property))
+;           (apply concat ~'quick-check-opts))))
+;	(set ,name 
+
+(defmacro vv (n &optional o p)
+  ""
+  (let ((p2 (or p o))
+	(o2 (and p o)))
+    `(list ,n ,o2 ,p2)))
 
 (provide 'tcel-test)
 ;;; tcel-test.el ends here

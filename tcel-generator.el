@@ -24,7 +24,7 @@
 
 ;;; Code:
 
-(require 'rosetree)
+(require 'tcel-rosetree)
 (require 'cljs-el)
 
 (defclass tcel-generator-generator ()
@@ -699,5 +699,5 @@ sequences (er, lists)."
   (tcel-generator-recursive-gen 'tcel-generator-container-type (tcel-generator-simple-type-printable)))
 
 
-(provide 'generator)
+(provide 'tcel-generator)
 ;;; generator.el ends here
