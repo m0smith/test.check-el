@@ -23,8 +23,11 @@
 ;; https://github.com/clojure/test.check/blob/master/src/main/clojure/cljs/test/check/cljs_test.cljs
 
 ;; report map keys
-;;   :trial
+;;   :trial is a list with [so-far total]
 ;;   :property-fun (needs a property :name)
+;;   :params 
+;;   :progress - a progress-reporter https://www.gnu.org/software/emacs/manual/html_node/elisp/Progress.html#Progress
+
 
 ;;; Code:
 
@@ -87,21 +90,57 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
 (defun tcel-test-get-property-name (report-map)
   ( let ((property-fun (plist-get report-map :property-fun)))
     (or (get property-fun :name) 
-	(ct/testing-vars-str report-map)))
+	(ct/testing-vars-str report-map))))
 
 
 (defun tcel-test-trial-report-periodic (m)
-  "Intended to be bound as the value of `tcel-testreport-trials`; will emit a verbose
+  "Intended to be bound as the value of `tcel-test-report-trials`; will emit a verbose
   status every `tcel-test-trial-report-period` milliseconds, like this one:
   Passing trial 3286 / 5000 for (your-test-var-name-here) (:)"
-  (let ((t (floor (float-time)))
-    (when (> (- t tcel-test-trial-report-period) tcel-test-last-trial-report)
-      (let ((trial (plist-get m :trial))
-	    (start (car trial))
-	    (end (cadr trial)))
-	(message "Passing trial %s/%s for %s" start end (tcel-test-get-property-name m))
-	(setq tcel-test-last-trial-report t))))
+  (let* ((progress-reporter (plist-get m :progress))
+	 (trial (plist-get m :trial))
+	 (so-far (car trial)))
+    (progress-reporter-update progress-reporter so-far)))
 
+(defun trial-report-dots   (report-map)
+  "Intended to be bound as the value of `tcel-test-report-trials`; will emit a single
+  dot every 1000 trials reported. [{[so-far total] ::trial}]"
+  (let* ((trial (plist-get report-map :trial))
+	 (so-far (car trial))
+	 (total (cadr trial)))
+    (when (< 0 so-far)
+      (when (< 0  (mod so-far 1000))
+	(message "."))
+      (when (== so-far total) (message "")))))
+
+
+(defun tcel-test-ct/report-default-trial (m)
+  (-when-let (trial-report-fn (and tcel-test-report-trials
+                                  (if tcel-test-report-trials
+				      'tcel-test-trial-report-periodic
+                                    tcel-test-report-trials)))
+    (funcal trial-report-fn m)))
+
+(defun tcel-test-ct/report-default-begin-test-var (m)
+    (setq tcel-testlast-trial-report (floor (float-time)))
+    (when begin-test-var-method (begin-test-var-method m)))
+
+(defun tcel-test-ct/report-default-shrinking (m)
+  (when tcel-test-report-shrinking
+    (message "Shrinking %s starting with parameters %s" 
+	     (tcel-test-get-property-name m)
+	     (plist-get m :params ))))
+
+
+(defun tcel-test-report-trial  (property-fun so-far num-tests)
+  (ct/report (list :type :trial
+		   :property property-fun
+		   :trial (list so-far num-tests))))
+
+(defun tcel-test-report-failure  (property-fun result trial-number failing-params)
+  (ct/report (list :type :shrinking
+		   :property property-fun
+		   :params  failing-params)))
 
 (provide 'tcel-test)
 ;;; tcel-test.el ends here
