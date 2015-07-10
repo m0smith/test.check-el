@@ -24,7 +24,8 @@
 
 ;;; Code:
 
-
+(require 'rosetree)
+(require 'cljs-el)
 
 (defclass tcel-generator-generator ()
   ((gen :initarg :gen)))
