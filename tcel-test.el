@@ -22,6 +22,10 @@
 
 ;; https://github.com/clojure/test.check/blob/master/src/main/clojure/cljs/test/check/cljs_test.cljs
 
+;; report map keys
+;;   :trial
+;;   :property-fun (needs a property :name)
+
 ;;; Code:
 
 
@@ -78,6 +82,25 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
   )
 
 (defvar tcel-test-last-trial-report 0)
+
+
+(defun tcel-test-get-property-name (report-map)
+  ( let ((property-fun (plist-get report-map :property-fun)))
+    (or (get property-fun :name) 
+	(ct/testing-vars-str report-map)))
+
+
+(defun tcel-test-trial-report-periodic (m)
+  "Intended to be bound as the value of `tcel-testreport-trials`; will emit a verbose
+  status every `tcel-test-trial-report-period` milliseconds, like this one:
+  Passing trial 3286 / 5000 for (your-test-var-name-here) (:)"
+  (let ((t (floor (float-time)))
+    (when (> (- t tcel-test-trial-report-period) tcel-test-last-trial-report)
+      (let ((trial (plist-get m :trial))
+	    (start (car trial))
+	    (end (cadr trial)))
+	(message "Passing trial %s/%s for %s" start end (tcel-test-get-property-name m))
+	(setq tcel-test-last-trial-report t))))
 
 
 (provide 'tcel-test)
