@@ -33,7 +33,7 @@
 					    (= a a)))
 					      
 
-(tcel-test-defspec default-trial-count-2 '(:num-tests 20)
+(tcel-test-defspec default-trial-count-2 '(:num-tests 500)
 		   (tcel-properties-for-all (a (tcel-generator-int) b (tcel-generator-int)) 
 					     (= (+ b a) (+ a b))))
 

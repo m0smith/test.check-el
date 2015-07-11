@@ -168,8 +168,7 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
 					;(max-size (plist-get quick-check-options :max-size))
 		(max-size 11))
 	   
-	   (apply 'tcel-check-quick-check times ,property-sym) ;quick-check-options)
-	   (message "%s %s %s" 'tcel--quick-check times ',property-sym)
+	   (funcall 'tcel-check-quick-check times ,property) ;quick-check-options)
 	   ))
        
        (put ',name :defspec t)
@@ -188,11 +187,6 @@ See https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Symbols.html
 ;           (apply concat ~'quick-check-opts))))
 ;	(set ,name 
 
-(defmacro vv (n &optional o p)
-  ""
-  (let ((p2 (or p o))
-	(o2 (and p o)))
-    `(list ,n ,o2 ,p2)))
 
 (provide 'tcel-test)
 ;;; tcel-test.el ends here

@@ -28,7 +28,7 @@
 
 (defun tcel-properties-apply-gen (fn1)
   (lambda (args)
-    (let ((result (condition-case-unless-debug ex (apply fn1 args)
+    (let ((result (condition-case ex (apply fn1 args)
 		    (error ex))))
       (list :result   result
 	    :function fn1
@@ -59,7 +59,7 @@
   `(tcel-properties-for-all*
     ,(cons 'list (plist-values bindings)) 
     (lambda ,(plist-keys bindings)
-               ,@body)))
+              (should ,@body))))
 
 (provide 'tcel-properties)
 ;;; properties.el ends here

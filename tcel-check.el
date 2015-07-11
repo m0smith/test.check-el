@@ -37,7 +37,11 @@
 
 (defun tcel-check-not-falsey-or-exception? (value)
   "True if the value is not falsy or an exception"
-  (and value (not (get value 'error-conditions))))
+  (message "%s" value)
+  (let ((rtnval (or (and value (not (consp value)))
+		    (and (consp value)
+			      (not (get (car value) 'error-conditions))))))
+    rtnval))
 
 
 (defun tcel-check-smallest-shrink  (total-nodes-visited depth smallest)
@@ -98,12 +102,12 @@
     
     ;(ct/report-failure property result trial-number failing-args)
     
-    (list :result result
-	  :seed seed
-	  :failing-size size
-	  :num-tests (1+ trial-number)
-	  :fail failing-args
-	  :shrunk (tcel-check-shrink-loop failing-rose-tree))))
+    (ert-fail(list :result result
+		   :seed seed
+		   :failing-size size
+		   :num-tests (1+ trial-number)
+		   :fail failing-args
+		   :shrunk (tcel-check-shrink-loop failing-rose-tree)))))
 
 
 (defun tcel-check-quick-check   (num-tests property &optional options)
