@@ -153,7 +153,15 @@ sequences (er, lists)."
 
 (defun tcel-generator-halfs (n)
   "Return a non-lazy sequence"
-  (cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
+  (let ((i n)
+	(accum '()))
+    (while (< 0 i)
+      (setq accum (cons i accum))
+      (setq i (/ i 2)))
+    (nreverse accum)))
+      
+      
+  ;;(cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
 
 (defun tcel-generator-shrink-int  (n &optional pred)
   "Return a non-lazy list"

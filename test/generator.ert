@@ -18,6 +18,11 @@
 (ert-deftest test-tcel-generator-choose ()
   (should (equal '(15 20 18 20 17 14 13 15 10 18)
 		 (tcel-generator-sample (tcel-generator-choose 10 20) nil 42))))
+
+
+(ert-deftest test-tcel-generator-choose2 ()
+  (should (equal '(498 923 803 943 689 395 334 476 81 804)
+		 (tcel-generator-sample (tcel-generator-choose 0 1000) nil 42))))
 	     
     
 	     
@@ -28,11 +33,11 @@
 
 (ert-deftest test-tcel-generator-such-that ()
 
-      (should (equal '(:c :a :d :a :a :a :a :a :d :c)
+      (should (equal '(:d :c :c :a :d :a :a :a :c :c)
 		   (tcel-generator-sample (tcel-generator-such-that 
-				 (lambda (a) (not (equal a :b)))
-				 (tcel-generator-elements '(:a :b :c :d))
-				 9)))))
+					   (lambda (a) (not (equal a :b)))
+					   (tcel-generator-elements '(:a :b :c :d))
+					   9) nil -876))))
 
 (ert-deftest test-tcel-generator-boolean ()
 
@@ -136,9 +141,9 @@
   (should (equal '((:c :b :d :a)
 		   (:d :a :c :b)
 		   (:b :c :a :d)
-		   nil
+		   (:a :b :c :d)
 		   (:b :c :d :a)
-		   nil
+		   (:a :b :c :d)
 		   (:b :c :a :d)
 		   (:a :d :c :b)
 		   (:d :b :c :a)
@@ -299,8 +304,8 @@
 		   (tcel-generator-sample (tcel-generator-string-alphanumeric) 8 -99))))
 
 (ert-deftest test-tcel-generator-keyword ()
-      (should (equal '(:T :of :Kapfi :*eF\?O :wxq8I7- :ia_*1o!Ed2*2Eb8\?9X-J* :L5!\?Fs_sG14\?**Dm :U4_6!gw3UP!7)
-		   (tcel-generator-sample (tcel-generator-keyword) 8 -99))))
+      (should (equal '(:T :of :Kapfi :*eF\?O :wxq8I7- :ia_*1o!Ed2*2Eb8\?9X-J* :L5!\?Fs_sG14\?**Dm :U4_6!gw3UP!7 :yEn\?+h_WgDIM!tc83-\?i-1*Y2\?4+9Y+**V :p29)
+		   (tcel-generator-sample (tcel-generator-keyword) nil -99))))
 
 
 (ert-deftest test-tcel-generator-symbol ()
@@ -321,5 +326,5 @@
 ))
 (ert-deftest test-tcel-generator-recursive-gen ()
   (should (equal '([] [[[1]]] [[]] [] [[-4 -4]] [] [2 -3 3 0] [[]] [[[-4] [0 8]]] [])
-		 (tcel-generator-sample (tcel-generator-recursive-gen 'tcel-generator-vector (tcel-generator-int)) 10 -88))))
+		 (tcel-generator-sample (tcel-generator-recursive-gen 'tcel-generator-vector (tcel-generator-int)) nil -88))))
 

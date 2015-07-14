@@ -37,7 +37,6 @@
 
 (defun tcel-check-not-falsey-or-exception? (value)
   "True if the value is not falsy or an exception"
-  (message "%s" value)
   (let ((rtnval (or (and value (not (consp value)))
 		    (and (consp value)
 			      (not (get (car value) 'error-conditions))))))
