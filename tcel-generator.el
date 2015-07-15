@@ -591,6 +591,10 @@ sequences (er, lists)."
   "Generate ascii strings."
   (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char-ascii))))
 
+(defun tcel-generator-string-alpha (&rest _)
+  "Generate ascii strings."
+  (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char-alpha))))
+
 (defun tcel-generator-string-alphanumeric (&rest _)
   "Generate alphanumeric strings."
   (tcel-generator-fmap 'concat (tcel-generator-vector (tcel-generator-char-alphanumeric))))
