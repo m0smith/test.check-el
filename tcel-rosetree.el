@@ -28,11 +28,14 @@
 (require 'cljs-el)
 
 (defun qc-rt-exclude-nth (n coll)
-  (qc-rt-replace-at n 'qc-rt-excluded coll))
+  (qc-rt-replace-at n [0 []] coll))
 
 (defun qc-rt-replace-at (n val coll)
+  "COLL must be an array or vector"
   (when coll
-    (aset (copy-sequence coll) n val)))
+    (let ((rtnval (copy-sequence coll)))
+      (aset rtnval n val)
+      rtnval)))
 
 (defun qc-rt-map (f coll)
   "Return a new vector with F applied to each element of COLL"
@@ -94,13 +97,19 @@
     (vector the-root (cljs-el-map (lambda (a) (qc-rt-filter pred a))
 				  (cljs-el-filter (lambda (b) (funcall pred (qc-rt-root b))) children)))))
 
+(defun qc-rt-indexed-coll (coll)
+  (cl-map 'list 'list coll (number-sequence 0 (1- (length coll)))))
+  
+
 (defun qc-rt-permutations   (roses)
   "Create a seq of lists, where each rose in turn, has been replaced
   by its children."
   (apply 'vconcat
-	 (loop for (root index) in (map 'vector (lambda(index) (list (elt roses index) index)) (number-sequence 0 (1- (length roses))))
-	       collect (loop  for child in (qc-rt-children root)
+	 (loop for (root index) in (qc-rt-indexed-coll roses)
+	       collect (loop  for child in (cljs-el-list (qc-rt-children root))
 			      collect (qc-rt-replace-at index child roses)))))
+
+
 
 (defun qc-rt-zip   (f roses)
   "Apply `f` to the sequence of Rose trees `roses`."

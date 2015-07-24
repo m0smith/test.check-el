@@ -155,7 +155,7 @@ sequences (er, lists)."
   "Return a non-lazy sequence"
   (let ((i n)
 	(accum '()))
-    (while (< 0 i)
+    (while (not (= 0 i))
       (setq accum (cons i accum))
       (setq i (/ i 2)))
     (nreverse accum)))
@@ -326,8 +326,8 @@ sequences (er, lists)."
   from the generators in the same position. The individual elements shrink
   according to their generator, but the value will never shrink in count.
   Examples:
-      (setq t (tcel-generator-tuple (tcel-generator-int) (tcel-generator-boolean)))
-      (tcel-generator-sample t)
+      (setq ts (tcel-generator-tuple (tcel-generator-int) (tcel-generator-boolean)))
+      (tcel-generator-sample ts)
       ;; => ([1 true] [2 true] [2 false] [1 false] [0 true] [-2 false] [-6 false]
       ;; =>  [3 true] [-4 false] [9 true]))
   "
