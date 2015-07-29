@@ -34,27 +34,27 @@
   "Test is `x` is a generator. Generators should be treated as opaque values."
   (tcel-generator-generator-p x))
 
-(defun tcel-generator-make-gen  (generator-fn)
-  (tcel-generator-generator "make-gen" :gen generator-fn))
+(defun tcel-generator-make-gen  (name generator-fn)
+  (tcel-generator-generator name :gen generator-fn))
 
 (defun tcel-generator-call-gen (g rnd size)
   (let ((generator-fn (oref g gen)))
     (funcall generator-fn rnd size)))
 
 (defun tcel-generator-gen-pure  (value)
-  (tcel-generator-make-gen
+  (tcel-generator-make-gen "gen-pure"
    (lambda (rnd size) value)))
 
 (defun tcel-generator-gen-fmap (k g)
   (let ((h (oref g gen))) 
-    (tcel-generator-make-gen
+    (tcel-generator-make-gen "gen-fmap"
      (lambda (rnd size)
        (funcall k (funcall h rnd size))))))
 
 
 (defun tcel-generator-gen-bind   (g k)
   (let ((h (oref g gen))) 
-    (tcel-generator-make-gen
+    (tcel-generator-make-gen "gen-bind"
      (lambda (rnd size)
        (let* ((inner (funcall h rnd size))
 	      (result-gen (funcall k inner))
@@ -64,7 +64,7 @@
 (defun tcel-generator-gen-seq->seq-gen (gens)
   "Takes a sequence of generators and returns a generator of
 sequences (er, lists)."
-  (tcel-generator-make-gen
+  (tcel-generator-make-gen "gen-seq->seq-gen"
    (lambda (rnd size)
      (map 'vector (lambda (a) (tcel-generator-call-gen a rnd size)) gens))))
 
@@ -85,7 +85,7 @@ sequences (er, lists)."
 (defun tcel-generator-bind-helper  (k)
   (lambda (rose)
     (tcel-generator-gen-fmap 'qc-rt-join
-			     (tcel-generator-make-gen
+			     (tcel-generator-make-gen "bind-helper"
 			      (lambda (rnd size)
 				(qc-rt-fmap (lambda (a) (tcel-generator-call-gen a rnd size))
 					    (qc-rt-fmap k rose)))))))
@@ -150,27 +150,50 @@ sequences (er, lists)."
 
 ;; Internal Helpers
 ;; ---------------------------------------------------------------------------
+(defvar tcel-generator-int-rose-tree-cache (make-hash-table :test 'equal)
+  "Cache for int-rose-tree to speed things up")
 
-(defun tcel-generator-halfs (n)
+(defvar tcel-generator-int-rose-tree-cache-hits 0)
+
+(defvar tcel-generator-int-rose-tree-cache-misses 0)
+
+(defun tcel-generator-int-rose-tree-check-cache (key)
+  (if (= (car key) 0)
+      nil
+    (let ((rtnval (gethash key tcel-generator-int-rose-tree-cache nil)))
+      (if rtnval
+	  (setq tcel-generator-int-rose-tree-cache-hits (1+ tcel-generator-int-rose-tree-cache-hits))
+	(setq tcel-generator-int-rose-tree-cache-misses (1+ tcel-generator-int-rose-tree-cache-misses)))
+      rtnval)))
+      
+
+(defun  tcel-generator-halfs (n)
   "Return a non-lazy sequence"
-  (let ((i n)
-	(accum '()))
-    (while (not (= 0 i))
-      (setq accum (cons i accum))
-      (setq i (/ i 2)))
-    (nreverse accum)))
+      (let ((i n)
+	    (accum '()))
+	(while (not (= 0 i))
+	  (setq accum (cons i accum))
+	  (setq i (/ i 2)))
+	(let ((rtnval (nreverse accum)))
+	  rtnval)))
       
       
   ;;(cljs-el-list (cljs-el-take-while (lambda (a) (not (equal 0 a))) (cljs-el-iterate (lambda (a) (/ a  2)) n))))
 
 (defun tcel-generator-shrink-int  (n &optional pred)
   "Return a non-lazy list"
-  (if pred
+  (if (and pred (not (= 0 n)))
       (-filter pred (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n)))
     (mapcar (lambda (a) (- n a)) (tcel-generator-halfs n))))
 
-(defun tcel-generator-int-rose-tree  (value &optional pred)
-  (vector value  (cljs-el-map 'tcel-generator-int-rose-tree (tcel-generator-shrink-int value pred))))
+(defun tcel-generator-int-rose-tree  (value &optional pred lower upper)
+  (let ((key (list value lower upper)))
+    (or  (tcel-generator-int-rose-tree-check-cache key)
+	 (let ((children (cljs-el-map (lambda (v) (tcel-generator-int-rose-tree v pred lower upper))
+				      (tcel-generator-shrink-int value pred))))
+	   (let ((rtnval (qc-rt-make-rose value  children)))
+	     (puthash key rtnval tcel-generator-int-rose-tree-cache)
+	     rtnval)))))
 
 (defun tcel-generator-rand-range (rnd lower upper)
   (assert (<= lower upper) t "Lower must be <= upper")
@@ -183,7 +206,7 @@ sequences (er, lists)."
   "Create a generator that depends on the size parameter.
   `SIZED-GEN` is a function that takes an integer and returns
   a generator."
-  (tcel-generator-make-gen
+  (tcel-generator-make-gen "sized"
    (lambda (rnd size)
      (let ((sized-gen (funcall sized-gen size)))
        (tcel-generator-call-gen sized-gen rnd size)))))
@@ -195,19 +218,20 @@ sequences (er, lists)."
   "Create a new generator with `size` always bound to `n`."
   (assert (tcel-generator-generator? generator) y "Second arg to resize must be a generator")
   (let ((gen (oref generator gen)))
-    (tcel-generator-make-gen
+    (tcel-generator-make-gen "resize"
      (lambda (rnd _size)
        (funcall gen rnd n)))))
+
 
 (defun tcel-generator-choose   (lower upper)
   "Create a generator that returns numbers in the range
   `min-range` to `max-range`, inclusive."
-  (tcel-generator-make-gen
+  (tcel-generator-make-gen "choose"
    (lambda (rnd _size)
      (let ((value (tcel-generator-rand-range rnd lower upper))
 	   (pred (lambda (a) (and (>= a lower) (<= a upper)))))
        (qc-rt-filter pred
-	(tcel-generator-int-rose-tree value pred))))))
+	(tcel-generator-int-rose-tree value pred lower upper))))))
 
 
 (defun tcel-generator-one-of  (generators)
@@ -285,7 +309,7 @@ sequences (er, lists)."
   "
   (let ((max-tries (or max-tries 10)))
     (assert (tcel-generator-generator? gen) t "Second arg to such-that must be a generator")
-    (tcel-generator-make-gen
+    (tcel-generator-make-gen "such-that"
      (lambda (rand-seed size)
        (tcel-generator-such-that-helper max-tries pred gen max-tries rand-seed size)))))
 
@@ -438,7 +462,7 @@ sequences (er, lists)."
   "Create a generator that generates random permutations of `coll`. Shrinks
   toward the original collection: `coll`."
   (let ((index-gen (tcel-generator-choose 0 (1- (length coll)))))
-    (tcel-generator-fmap (lambda (a)  (cljs-el-reduce 'tcel-generator-swap coll a))
+    (tcel-generator-fmap (lambda (a)  (cljs-el-reduce3 'tcel-generator-swap coll a))
           ;; a vector of swap instructions, with count between
           ;; zero and 2 * count. This means that the average number
           ;; of instructions is count, which should provide sufficient

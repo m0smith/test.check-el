@@ -1,3 +1,5 @@
+(require 'tcel-generator)
+
 (ert-deftest test-tcel-generator-halfs ()
   (should (equal '(9 4 2 1) (tcel-generator-halfs 9)))
   (should (equal '(99 49 24 12 6 3 1) (tcel-generator-halfs 99)))

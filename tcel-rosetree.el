@@ -20,92 +20,130 @@
 
 ;;; Commentary:
 
-;; See https://github.com/clojure/test.check/blob/master/src/main/clojure/cljs/test/check/rose_tree.cljs
-;;  Rose trees are nested vectors for performance reasons
+;; See
+;;  https://github.com/clojure/test.check/blob/master/src/main/clojure/cljs/test/check/rose_tree.cljs
+;;  Rose trees are cons cells with the car being the value.  The cdr
+;;  is a lazy collection of zero or more rose trees.
+;;
+;;  Naming Convention:
+;;     coll  - anything that is a cljs-el-seq: list,
+;;     vector, cljs-el-lazy-cons, cljs-el-lazy-chunk
+;;     rose  - a rose tree which is a cons (value . children) where
+;;            children is a coll of rose
+;;     roses - a coll of rose, same as children
 ;;; Code:
 
 (require 'dash)
 (require 'cljs-el)
 
 (defun qc-rt-exclude-nth (n coll)
-  (qc-rt-replace-at n [0 []] coll))
+  (cljs-el-map 'cdr (cljs-el-filter (lambda (e) (not (= n (car e))))
+				    (cljs-el-map-indexed 'cons coll))))
 
 (defun qc-rt-replace-at (n val coll)
-  "COLL must be an array or vector"
-  (when coll
-    (let ((rtnval (copy-sequence coll)))
-      (aset rtnval n val)
-      rtnval)))
+  "Repleace the Nth element of COLL with VAL"
+  (cljs-el-map  (lambda (e) (if (= n (car e)) val (cdr e)))
+		(cljs-el-map-indexed 'cons coll)))
+
+(defun qc-rt-rosep (rose)
+  (or (not rose)
+      (consp rose)))
 
 (defun qc-rt-map (f coll)
   "Return a new vector with F applied to each element of COLL"
-  (let ((rtnval (copy-sequence coll)))
-    (dotimes (i (length coll) rtnval)
-      (aset rtnval i (funcall f (aref coll i))))))
-   
-(defun qc-rt-vector (coll)
-  (when coll
-    (if (arrayp coll) 
-	coll
-      (vector coll))))
-	
+  (cljs-el-map f coll))
 
-(defun qc-rt-join (coll)
+(defun qc-rt-root (rose)
+  "Returns the root value of a Rose tree."
+  (assert (qc-rt-rosep rose) t "Must be a rose")
+  (let ((root (car rose)))
+    root))
+
+(defun qc-rt-children (rose)
+  "Returns the children of the root of the Rose tree."
+  (assert (qc-rt-rosep rose) t "Must be a rose")
+  (let ((children (cdr rose)))
+    children))
+
+(defun qc-rt-make-rose (value children)
+  "Return a new Rose Tree with value and children"
+  (cons value children))
+
+(defun qc-rt-join (rose)
   "Turn a tree of trees into a single tree. Does this by concatenating
   children of the inner and outer trees.
 "
-  (let* ((the-root (elt coll 0))
-	 (children (elt coll 1))
-	 (inner-root (elt the-root 0))
-	 (inner-children (elt the-root 1)))
-    (vector inner-root (-concat (cljs-el-map 'qc-rt-join children)
-				inner-children))))
-
-(defun qc-rt-root (coll)
-  "Returns the root of a Rose tree."
-  (let ((root (elt coll 0)))
-    root))
-
-(defun qc-rt-children (coll)
-  "Returns the children of the root of the Rose tree."
-  (let ((children (elt coll 1)))
-    children))
+  (assert (qc-rt-rosep rose) t "Must be a rose")
+  (let* ((the-root (qc-rt-root rose))
+	 (children (qc-rt-children rose))
+	 (inner-root (qc-rt-root the-root))
+	 (inner-children (qc-rt-children the-root)))
+    (qc-rt-make-rose inner-root (-concat (cljs-el-map 'qc-rt-join children)
+				   inner-children))))
 
 (defun qc-rt-pure (x)
   "Puts a value `x` into a Rose tree, with no children."
-  (vector x []))
+  (qc-rt-make-rose x []))
 
-(defun qc-rt-fmap (f coll)
+(defun qc-rt-fmap (f rose)
   "Applies functions `f` to all values in the tree."
-  (let ((root (elt coll 0))
-	(children (elt coll 1)))
-    (vector (funcall f root) (cljs-el-map (lambda (a) (qc-rt-fmap f a)) children))))
+  (assert (qc-rt-rosep rose) t "Must be a rose")
+  (let ((root (qc-rt-root rose))
+	(children (qc-rt-children rose)))
+    (qc-rt-make-rose (funcall f root) (cljs-el-map (lambda (a) (qc-rt-fmap f a)) children))))
 
-(defun qc-rt-bind (m k)
-  "Takes a Rose tree (m) and a function (k) from
+(defun qc-rt-bind (rose f)
+  "Takes a Rose tree (ROSE) and a function (F) from
   values to Rose tree and returns a new Rose tree.
   This is the monadic bind (>>=) for Rose trees."
-  (qc-rt-join (qc-rt-fmap k m)))
+  (qc-rt-join (qc-rt-fmap f rose)))
 
 
-(defun qc-rt-filter (pred coll)
+(defun qc-rt-make-lazy (coll)
+  "Convert coll to a lazy, unless it is already lazy"
+  (when (cljs-el-seq coll)
+    (if (cljs-el-lazy-p coll)
+	coll
+      (let ((chunk (cljs-el-list coll)))
+	(cljs-el-lazy-cons "qc-rt-make-lazy"
+			   :car-fn (lambda () (cljs-el-car coll))
+			   :cdr-fn (lambda () (cljs-el-cdr coll)))))))
+
+(defun qc-rt-make-lazy-chunk (coll)
+  "Convert coll to a lazy chunk, unless it is already lazy"
+  (when (cljs-el-seq coll)
+    (if (cljs-el-lazy-p coll)
+	coll
+      (let ((chunk (cljs-el-list coll)))
+	(cljs-el-lazy-chunk "qc-rt-make-lazy-chunk"
+			    :car  chunk
+			    :cdr-fn (lambda () nil))))))
+
+(defun qc-rt-filter (pred rose)
   "Returns a new Rose tree whose values pass `pred`. Values who
-  do not pass `pred` have their children cut out as well.
-  Takes a list of roses, not a rose"
-  (let ((the-root (elt coll 0))
-	(children (elt coll 1)))
-    (vector the-root (cljs-el-map (lambda (a) (qc-rt-filter pred a))
-				  (cljs-el-filter (lambda (b) (funcall pred (qc-rt-root b))) children)))))
+  do not pass `pred` have their children cut out as well."
+  (assert (qc-rt-rosep rose) t "Must be a rose")
+
+  (let ((the-root (qc-rt-root rose))
+	(children (qc-rt-children rose)))
+    (cl-labels ((recur (rose) (qc-rt-filter pred rose))
+		(valid-root (child) (funcall pred (qc-rt-root child))))
+      (let* ((valid-childern (qc-rt-make-lazy (cljs-el-filter (function valid-root) children))) ;
+	    (new-children (cljs-el-map (function recur) valid-childern)))
+	(qc-rt-make-rose the-root new-children)))))
+			
+
+
 
 (defun qc-rt-indexed-coll (coll)
-  (cl-map 'list 'list coll (number-sequence 0 (1- (length coll)))))
-  
+  "For each element in COLL, return (list idx ele)"
+  (cljs-el-map-indexed 'list coll))
 
 (defun qc-rt-permutations   (roses)
   "Create a seq of lists, where each rose in turn, has been replaced
   by its children."
   (apply 'vconcat
-	 (loop for (root index) in (qc-rt-indexed-coll roses)
+	 (loop for (index root) in (cljs-el-list (qc-rt-indexed-coll roses))
 	       collect (loop  for child in (cljs-el-list (qc-rt-children root))
 			      collect (qc-rt-replace-at index child roses)))))
 
@@ -113,9 +151,9 @@
 
 (defun qc-rt-zip   (f roses)
   "Apply `f` to the sequence of Rose trees `roses`."
-  (vector (apply f (mapcar 'qc-rt-root roses))
-	  (qc-rt-map (lambda (a) (qc-rt-zip f a))
-		     (qc-rt-permutations roses))))
+  (qc-rt-make-rose (apply f (mapcar 'qc-rt-root roses))
+		   (qc-rt-map (lambda (a) (qc-rt-zip f a))
+			      (qc-rt-make-lazy-chunk (qc-rt-permutations roses)))))
 
 (defun qc-rt-remove (roses)
   (when (< 0 (length roses))
@@ -126,9 +164,10 @@
 
 (defun qc-rt-shrink  (f roses)
   (if (and roses (sequencep roses))
-      (vector (apply f (mapcar 'qc-rt-root roses))
-	      (qc-rt-map (lambda (a) (qc-rt-shrink f a)) (qc-rt-remove roses)))
-    (vector (funcall f) '[] )))
+      (cl-labels (( recur (a) (qc-rt-shrink f a)))
+	(qc-rt-make-rose (apply f (mapcar 'qc-rt-root roses))
+		   (qc-rt-map (function recur) (qc-rt-make-lazy-chunk (qc-rt-remove roses)))))
+    (qc-rt-make-rose (funcall f) '[] )))
   
 (defun qc-rt-collapse  (coll)
   "Return a new rose-tree whose depth-one children
@@ -136,9 +175,9 @@
   tree."
   (let ((root (elt coll 0))
 	(the-children (elt coll 1)))
-    (vector root (vconcat (map 'vector 'qc-rt-collapse the-children)
-			  (map 'vector 'qc-rt-collapse
-			       (map 'vector 'qc-rt-children the-children))))))
+    (qc-rt-make-rose root (vconcat (map 'vector 'qc-rt-collapse the-children)
+			     (map 'vector 'qc-rt-collapse
+				  (map 'vector 'qc-rt-children the-children))))))
 
 (defun qc-rt-make-stack  (children stack)
   (if  (and children (sequencep children))

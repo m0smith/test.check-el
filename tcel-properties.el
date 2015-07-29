@@ -42,7 +42,7 @@
   Example:
   (for-all* [gen/int gen/int] (fn [a b] (>= (+ a b) a)))
   "
-  (tcel-generator-fmap
+  (tcel-generator-fmap 
     (tcel-properties-apply-gen fn2)
     (apply 'tcel-generator-tuple args)))
 

@@ -35,7 +35,7 @@
   (progress-reporter-done progress-reporter)
   (list :result t :num-tests num-trials :seed seed))
 
-(defun tcel-check-not-falsey-or-exception? (value)
+(defun tcel-check-not-falsey-or-exception-p (value)
   "True if the value is not falsy or an exception"
   (let ((rtnval (or (and value (not (consp value)))
 		    (and (consp value)
@@ -69,12 +69,12 @@
 	  (rtnval nil))
       (while (not rtnval)
 
-	(if (= 0 (length nodes))
+	(if (not (cljs-el-seq nodes))
 	    (setq rtnval (tcel-check-smallest-shrink total-nodes-visited depth current-smallest))
 	  (let* ((head (cljs-el-car nodes))
 		 (tail (cljs-el-cdr nodes))
 		 (result (plist-get  (qc-rt-root head) :result)))
-	    (if (not-falsey-or-exception? result)
+	    (if (tcel-check-not-falsey-or-exception-p result)
 		;; this node passed the test, so now try testing its right-siblings
 		(setq nodes tail
 		      total-nodes-visited (1+ total-nodes-visited))
@@ -84,7 +84,7 @@
 	      ;; seen now and then look at the right-siblings
 	      ;; children
 	      (let ((children (qc-rt-children head)))
-		(if (= 0 (length children))
+		(if (not (cljs-el-seq children))
 		    (setq nodes tail
 			  current-smallest (qc-rt-root head)
 			  total-nodes-visited (1+ total-nodes-visited))
@@ -140,7 +140,7 @@
 		   (result-map (qc-rt-root result-map-rose))
 		   (result (plist-get result-map :result))
 		   (args (plist-get result-map :args)))
-	      (if (not (tcel-check-not-falsey-or-exception? result))
+	      (if (not (tcel-check-not-falsey-or-exception-p result))
 		  (setq rtnval (tcel-check-failure property result-map-rose so-far size created-seed))
 		(progn
 		  (setq so-far (1+ so-far))
